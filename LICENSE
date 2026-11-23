@@ -1,0 +1,9 @@
+Copyright (c) 2026 Vutlan. All rights reserved.
+
+The Vutlan Configurator (index.html, llms.txt and the pictures in images/) is published so that anyone can use it to plan a Vutlan monitoring system, and view its source. No other permission is granted: you may not copy, modify, redistribute or rebrand it, or use the product pictures or the Vutlan name, without written permission from Vutlan.
+
+Third-party components keep their own licences:
+- lib/xlsx.full.min.js: SheetJS Community Edition, Apache License 2.0 (lib/LICENSE-xlsx.txt)
+- lib/html-to-image.js: html-to-image, MIT License (lib/LICENSE-html-to-image.txt)
+- lib/jspdf.umd.min.js: jsPDF, MIT License (lib/LICENSE-jspdf.txt)
+- fonts/: Barlow, Barlow Condensed and JetBrains Mono, SIL Open Font License 1.1 (fonts/LICENSE-fonts-OFL.txt)

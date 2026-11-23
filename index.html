@@ -1,0 +1,1529 @@
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Vutlan Configurator</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="description" content="Vutlan Configurator: plan a Vutlan monitoring system on the real panels and get the parts list, connections and Excel / PDF exports.">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Layout: the real front and back renders stacked like a unit seen from both sides of the rack; callout lanes above and below each render carry the +/− controls; the CAN chain hangs under the front; capacity and parts list at the bottom. */
+:root{
+  --bg:#eceef1; --paper:#ffffff; --ink:#15181c; --muted:#5d6672; --line:#d2d7dd; --grid:#e1e5e9;
+  --accent:#d0202f; --accent-ink:#ffffff;
+  --analog:#2563a8; --dry:#8a6410; --can:#d0202f; --relay:#3d7a35; --mod:#6b3fa0; --pwr:#b0510e;
+  --ok:#2f7d3a; --warn:#b26b00; --err:#c21d2c; --chip:#f4f5f7; --face:#5f6267; --face-ink:#e8eaed; --cable:#b8bec6;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101317; --paper:#181c21; --ink:#e6e9ed; --muted:#98a1ac; --line:#2b3139; --grid:#1d2228;
+  --accent:#ff4a58; --accent-ink:#121417;
+  --analog:#6ea8ea; --dry:#ddb45e; --can:#ff5c69; --relay:#7cc56f; --mod:#b38ae6; --pwr:#f08c4a;
+  --ok:#6cc27a; --warn:#f0a634; --err:#ff6b77; --chip:#20252b; --face:#4d5055; --cable:#5b626c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101317; --paper:#181c21; --ink:#e6e9ed; --muted:#98a1ac; --line:#2b3139; --grid:#1d2228;
+  --accent:#ff4a58; --accent-ink:#121417;
+  --analog:#6ea8ea; --dry:#ddb45e; --can:#ff5c69; --relay:#7cc56f; --mod:#b38ae6; --pwr:#f08c4a;
+  --ok:#6cc27a; --warn:#f0a634; --err:#ff6b77; --chip:#20252b; --face:#4d5055; --cable:#5b626c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1560px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+h1{font:700 2rem/1 var(--f-display);margin:0;letter-spacing:.02em}
+h1 span{color:var(--accent)}
+.sub{margin:6px 0 0;color:var(--muted);max-width:72ch}
+.proj{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 12px;align-items:center;background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px}
+.proj label{font:700 .76rem var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.proj select{font:600 .95rem var(--f-body);padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--chip);color:var(--ink);min-width:0;width:100%}
+.pctl{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-width:0}
+.pctl select,.pctl input{flex:1 1 220px;min-width:0;font:600 .95rem var(--f-body);padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--chip);color:var(--ink)}
+.pbtn{font:600 .85rem var(--f-body);padding:7px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;white-space:nowrap}
+.pbtn:hover{border-color:var(--accent);color:var(--accent)}
+.pbtn:disabled{opacity:.4;cursor:not-allowed}.pbtn:disabled:hover{border-color:var(--line);color:var(--ink)}
+.pbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pbtn.danger{background:var(--err);border-color:var(--err);color:#fff}
+.pctl .q{font-size:.9rem}
+.pnote{grid-column:1/-1}
+.pdw{position:relative;display:block}
+.pdw::after{content:"✎";position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.pdesc{width:100%;font:500 .92rem var(--f-body);color:var(--ink);background:var(--chip);border:1px dashed var(--muted);border-radius:6px;padding:6px 28px 6px 9px;cursor:text}
+.pdesc::placeholder{color:var(--muted);font-style:italic}
+.pdesc:focus{outline:2px solid var(--accent);border-color:var(--accent);background:var(--paper)}
+.proj p{grid-column:1/-1;margin:0;font-size:.9rem;color:var(--muted);min-width:0}
+@media (max-width:760px){.proj{grid-template-columns:1fr}}
+.msel{display:inline-flex;align-items:center;gap:10px;margin-top:10px;font:700 .76rem var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.msel select{font:600 .95rem var(--f-body);letter-spacing:0;text-transform:none;padding:7px 10px;border:1px solid var(--line);border-left:4px solid var(--pwr);border-radius:6px;background:var(--paper);color:var(--ink);cursor:pointer;max-width:100%}
+.msel select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.82rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:10px;overflow-x:auto;padding:10px 0 14px;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.side .msel2{display:inline-flex;align-items:center;gap:8px;margin-left:14px;text-transform:none;letter-spacing:0;font:600 .85rem var(--f-body);color:var(--muted)}
+.side .msel2 select{font:600 .88rem var(--f-body);padding:4px 8px;border:1px solid var(--line);border-left:4px solid var(--mod);border-radius:5px;background:var(--paper);color:var(--ink);cursor:pointer}
+.side{font:700 .78rem var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:0 16px 4px}
+.pv{position:relative;width:2000px;margin:0 auto}  /* width set per controller */
+.pv img{position:absolute;left:0;display:block;user-select:none;-webkit-user-drag:none}
+.pv svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+/* callouts are sized in panel units (the panel is 2000 units wide and zoomed to fit) */
+.co{position:absolute;display:flex;flex-direction:column;align-items:center;gap:4px}
+.co.top{transform:translate(-50%,-100%)}
+.co.bot{transform:translate(-50%,0)}
+.cap{font:600 13px var(--f-mono);color:var(--muted);white-space:nowrap}
+.add{width:38px;height:38px;border:2px dashed var(--muted);background:var(--paper);color:var(--muted);border-radius:7px;font:600 24px/1 var(--f-mono);cursor:pointer}
+.add:hover:not(:disabled){border-style:solid;border-color:var(--accent);color:var(--accent)}
+.add:disabled{opacity:.3;cursor:not-allowed}
+.rm{width:38px;height:24px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:6px;font:600 20px/1 var(--f-mono);cursor:pointer}
+.rm:hover{background:var(--err);color:#fff;border-color:var(--err)}
+.rm:disabled{opacity:.3;cursor:not-allowed}
+.chip{min-width:46px;height:32px;padding:0 7px;border:2px solid currentColor;background:var(--paper);border-radius:6px;display:grid;place-items:center;font:700 15px var(--f-mono);white-space:nowrap}
+.chip b{color:var(--ink)}
+.co.sm .add{width:32px;height:32px;font-size:20px}.co.sm .rm{width:32px;height:22px}.co.sm .chip{min-width:32px;width:32px;height:28px;padding:0;font-size:12px}
+.pair{display:flex;gap:4px}.pair .add,.pair .rm{width:38px;height:38px;font-size:24px}
+.stp{display:flex;align-items:center;gap:4px;font:600 13px var(--f-mono);color:var(--muted)}
+.stp button{width:28px;height:26px;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:5px;font:600 17px/1 var(--f-mono);cursor:pointer}
+.stp button:disabled{opacity:.3;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hl{position:absolute;border:3px solid;border-radius:6px;pointer-events:none;box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.nf{position:absolute;display:grid;place-items:center;text-align:center;background:rgba(40,43,48,.82);color:#e8eaed;border-radius:8px;font:600 14px/1.3 var(--f-body);pointer-events:none}
+.cbtn{cursor:pointer;position:relative;display:flex;gap:2px;align-items:center;padding:0 3px!important}.cbtn:hover{background:var(--chip)}
+.badge{font:700 11px var(--f-mono);font-style:normal;color:var(--paper);background:var(--analog);border-radius:4px;padding:1px 3px}
+.mcol .badge{font-size:9px;padding:0 2px}
+.led{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);background:#40ff80;box-shadow:0 0 10px 3px #40ff80;pointer-events:none}
+.led.o{background:#ffb02e;box-shadow:0 0 10px 3px #ffb02e}
+/* chain */
+.virt{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;padding:16px 16px 0}
+@media (max-width:820px){.virt{grid-template-columns:1fr}}
+.vg{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--mod);border-radius:6px;padding:10px 12px;min-width:0}
+.vg.off{opacity:.6}
+.vg h3{margin:0 0 2px;font:700 .78rem var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--mod)}
+.vg p{margin:0 0 8px;font-size:.82rem;color:var(--muted)}
+.vrows{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 18px}
+.vr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--grid)}
+.vr span{min-width:0}.vr small{display:block;color:var(--muted);font-size:.75rem}
+.vr .stepper output{min-width:40px}
+.chainhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:6px 16px 0}
+.chainhead b{font:700 .78rem var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--can)}
+.chainhead small{color:var(--muted)}
+.chain{display:grid;gap:22px 26px;padding:12px 28px 0 28px;justify-content:start}
+.chain>.card{min-width:0}
+#frontBox{position:relative}
+.canlines{position:absolute;left:0;top:0;pointer-events:none;z-index:3;overflow:visible}
+.card[data-chain]{position:relative}
+.card .hd .nm{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
+.lbl{flex:1;min-width:60px;font:500 .88rem var(--f-body);color:var(--ink);background:var(--chip);border:1px dashed var(--muted);border-radius:4px;padding:2px 22px 2px 6px;text-overflow:ellipsis;cursor:text}
+.card .hd .nm{position:relative}
+.card .hd .nm::after{content:"✎";position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:.85rem;color:var(--muted);pointer-events:none}
+.lbl::placeholder{color:var(--muted);font-style:italic}
+.chip.hasd{position:relative}
+.chip.hasd::after{content:"";position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--paper)}
+.dfield{display:grid;gap:4px;margin:6px 8px 6px;font:700 .7rem var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dfield input,.dIn{font:500 .92rem var(--f-body);text-transform:none;letter-spacing:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.dfield input:focus,.dIn:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.hint2{margin:-2px 0 10px;font-size:.88rem;color:var(--muted)}
+.tw{overflow-x:auto;max-height:520px;overflow-y:auto}
+#conn td{vertical-align:middle}#conn td:first-child{white-space:nowrap;font:600 .82rem var(--f-mono);color:var(--muted)}#conn td:nth-child(2){white-space:nowrap}
+.order{display:grid;gap:10px;border-left:4px solid var(--accent)}
+.ohd{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}.ohd h2{margin:0}
+.ostat{font:600 .85rem var(--f-mono);color:var(--muted);flex:1}
+.ogrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.2fr);gap:16px}
+@media (max-width:900px){.ogrid{grid-template-columns:1fr}}
+.order h3{margin:0 0 6px;font:700 .72rem var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.oprow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--grid)}
+.oprow label{display:flex;gap:8px;align-items:center;min-width:0;cursor:pointer}.oprow label span{overflow-wrap:anywhere}
+.oprow.off label span{color:var(--muted)}
+.stepper.sm button{width:26px;height:24px;font-size:.9rem}.stepper.sm output{min-width:34px;font-size:.8rem}
+.order td.by{font-size:.78rem;color:var(--muted);line-height:1.35}
+.foot{color:var(--muted);font-size:.8rem;margin:6px 0 0}
+body.capturing .tw{max-height:none!important;overflow:visible!important}
+body.capturing .menu{display:none!important}
+.exr{cursor:pointer}.exr span{display:flex;gap:8px;align-items:center}.exr.sum{border-top:2px solid var(--line);margin-top:4px}
+.cur{font:600 .7rem var(--f-mono);font-style:normal;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:0 4px}
+.dev{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.lks{display:flex;gap:4px;flex:none}
+.lk{width:28px;height:26px;display:grid;place-items:center;border-radius:5px;font:700 .78rem var(--f-mono);text-decoration:none;border:1px solid var(--line);color:var(--ink);background:var(--chip)}
+a.lk:hover{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+span.lk{opacity:.3;cursor:not-allowed}
+.antchip{font-weight:700;color:var(--mod)!important}
+#conn th{position:sticky;top:0;background:var(--paper);z-index:1}
+.lbl:hover{border-color:var(--line);color:var(--ink)}
+.lbl:focus{border-color:var(--accent);background:var(--paper);color:var(--ink);outline:none}
+.pos{display:flex;align-items:center;gap:3px;font:600 .7rem var(--f-mono);color:var(--muted)}
+.pos select{font:600 .78rem var(--f-mono);padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:var(--chip);color:var(--ink);cursor:pointer}
+.card{background:var(--paper);border:1px solid var(--line);border-top:3px solid var(--cable);border-radius:6px;padding:10px 12px;display:grid;gap:8px;align-content:start;min-width:170px;max-width:100%}
+.card .hd{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.card .hd b{font:700 1rem var(--f-display);letter-spacing:.03em}
+.card .hd small{font:600 .7rem var(--f-mono);color:var(--muted)}
+.mini{display:flex;gap:6px;background:var(--face);padding:8px;border-radius:3px;overflow-x:auto}
+.mcol{display:flex;flex-direction:column;align-items:center;gap:4px;width:40px;flex:none}
+.mcol .sl{height:52px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
+.mcol .rj{width:30px;height:24px;background:#16181b;border-radius:2px;box-shadow:inset 0 0 0 1px #000}
+.mcol .rj.on{box-shadow:inset 0 0 0 2px var(--analog)}
+.mcol .pl{font:600 9px var(--f-mono);color:var(--face-ink)}
+.mcol .add{width:28px;height:24px;font-size:16px;border-width:1.5px;background:transparent;color:var(--face-ink);border-color:var(--face-ink)}
+.mcol .chip{min-width:36px;height:22px;font-size:11px;border-width:1.5px;color:var(--analog)}
+.mcol .rm{width:36px;height:18px;font-size:14px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content}
+.stepper button{width:32px;height:30px;border:0;background:var(--chip);color:var(--ink);font:600 1rem var(--f-mono);cursor:pointer}
+.stepper button:hover:not(:disabled){background:var(--accent);color:var(--accent-ink)}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.stepper output{min-width:64px;text-align:center;font:600 .85rem var(--f-mono)}
+.empty{color:var(--muted);font-size:.9rem;padding:4px 0}
+.cardrm{font:600 .8rem var(--f-body);border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:5px;padding:4px 8px;cursor:pointer;justify-self:start}
+.cardrm:hover{background:var(--err);color:#fff;border-color:var(--err)}
+.pw{font:600 .72rem var(--f-mono);color:var(--muted)}.pw.ext{color:var(--pwr)}
+.card.psu{border-top-color:var(--pwr);background:var(--chip)}
+.v4wrap{overflow-x:auto;max-width:100%}
+.v4{position:relative}
+.v4 img{position:absolute;left:0;display:block;border-radius:3px;user-select:none}
+.v4co.b{transform:translate(-50%,0)}
+.v4co{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:3px;z-index:2}
+.v4co .add{width:28px;height:28px;font-size:17px;border-width:1.5px}
+.v4co .chip{min-width:34px;height:22px;font-size:11px;border-width:1.5px;padding:0 4px}
+.v4co .rm{width:34px;height:18px;font-size:14px}
+.v4co .badge{font-size:9px;padding:0 2px}
+.v4ln{position:absolute;width:2px;background:var(--muted);opacity:.35;z-index:1}.v4ln.on{background:var(--analog);opacity:1}
+.v4hl{position:absolute;border:2px solid var(--analog);border-radius:4px;z-index:1;pointer-events:none}
+.v4led{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);background:#40ff80;box-shadow:0 0 8px 2px #40ff80;z-index:1}
+.dots{display:grid;grid-template-columns:repeat(16,12px);gap:3px}
+.dots span{width:12px;height:12px;border-radius:50%;background:var(--grid)}.dots span.on{background:var(--dry)}
+/* summary */
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.m{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.m .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.m .v{font:600 1.15rem var(--f-mono);font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--grid);border-radius:3px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}.bar i.w{background:var(--warn)}.bar i.e{background:var(--err)}
+.lower{display:grid;grid-template-columns:1.2fr 1fr;gap:12px}
+@media (max-width:900px){.lower{grid-template-columns:1fr}}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.panel h2{font:700 .76rem var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{padding:5px 4px;border-top:1px solid var(--grid);text-align:left}th{border-top:0;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.notes li{padding:6px 10px;border-left:3px solid var(--ok);background:var(--chip);border-radius:5px;font-size:.9rem}
+.notes li.warn{border-color:var(--warn)}.notes li.err{border-color:var(--err)}
+/* dry contacts panel */
+.dryp{display:grid;gap:12px;border-left:4px solid var(--dry)}
+.dryp h3{margin:0 0 4px;font:700 .74rem var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--dry);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.dryp h3 small{font:600 .78rem var(--f-mono);letter-spacing:0;text-transform:none;color:var(--muted)}
+.drows{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:0 22px}
+@media (max-width:560px){.drows{grid-template-columns:1fr}}
+.drow{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr);gap:6px;align-items:start;padding:5px 0;border-top:1px solid var(--grid)}
+.drow .dn{font:700 .85rem var(--f-mono);color:var(--muted);text-align:right;padding-top:6px}
+.drow.on .dn{color:var(--dry)}
+.dpick{display:grid;gap:4px;min-width:0}
+.drow select,.drow input{width:100%;min-width:0;font:500 .88rem var(--f-body);padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink)}
+.drow.on select{border-color:var(--dry);font-weight:600}
+.drow input:disabled{opacity:.45}
+.drow select:focus,.drow input:focus{outline:2px solid var(--dry);outline-offset:0}
+.drow.hot{background:color-mix(in srgb,var(--dry) 14%,transparent);border-radius:5px}
+.drygrp{background:var(--chip);border-radius:6px;padding:8px 10px}
+/* collapsible panels: the header bar opens / closes the panel */
+.acc{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:2px 0;color:var(--ink);cursor:pointer;text-align:left;font:inherit}
+.acc .chev{flex:none;width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:6px;background:var(--chip);font:700 .85rem var(--f-mono);transition:transform .15s}
+.acc[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.acc h2{margin:0}.acc .ostat{flex:1}
+.acc .sumtxt{font:500 .82rem var(--f-body);color:var(--muted);flex:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc:hover .chev{border-color:var(--accent);color:var(--accent)}
+.dryp.closed{gap:0}
+.vnp{border-left-color:var(--mod)}
+:root{--lora:#0e8f7a}
+.lwp{border-left-color:var(--lora)}
+.lwp .note{margin:-4px 0 0;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--lora) 10%,transparent);font-size:.86rem;color:var(--ink)}
+.lwp .vrows{background:var(--chip);border-radius:6px;padding:4px 10px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}.lwp .vr:first-child{border-top:0}
+.lwgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:8px}
+@media (max-width:600px){.lwgrid{grid-template-columns:1fr}}
+.lwr{display:grid;grid-template-columns:34px 22px minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) 26px;gap:6px;align-items:center;background:var(--chip);border-radius:6px;padding:6px 8px;border-left:3px solid var(--lora)}
+.lwr .num{font:700 .82rem var(--f-mono);color:var(--lora)}
+.lwr .ic{color:var(--lora);font-size:1rem}
+.lwr input,.lwr select{min-width:0;width:100%;font:500 .86rem var(--f-body);padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink)}
+.lwr input:focus,.lwr select:focus{outline:2px solid var(--lora);outline-offset:0}
+.lwr .vals{display:flex;gap:4px;align-items:center;font-size:.78rem;color:var(--muted)}.lwr .vals input{width:52px}
+
+.vnp .note{margin:-4px 0 0;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--mod) 10%,transparent);font-size:.86rem;color:var(--ink)}
+.vnp .vrows{background:var(--chip);border-radius:6px;padding:4px 10px}
+.vnp .vr:first-child{border-top:0}
+.vnp.off .vrows,.vnp.off .vplan{opacity:.55}
+.vplan{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:12px}
+@media (max-width:600px){.vplan{grid-template-columns:1fr}}
+.vpc{background:var(--chip);border-radius:6px;padding:8px 10px;border-top:3px solid var(--mod);display:grid;gap:5px;align-content:start}
+.vpc h3{color:var(--mod)}
+.vpr{display:grid;grid-template-columns:28px minmax(0,1.2fr) minmax(0,1fr) 26px;gap:6px;align-items:center}
+.vpm{display:grid;gap:5px;padding-bottom:6px;border-bottom:1px solid var(--grid)}.vpm:last-child{border-bottom:0}
+.vrc{display:grid;gap:4px;padding-left:34px}.vrb{display:flex;justify-content:space-between;gap:8px}.vrc .pbtn{font-size:.8rem;padding:3px 8px}.vrc .pbtn small{color:var(--muted);margin-left:4px}
+.vpr.sub{grid-template-columns:22px minmax(0,1fr) 26px}.vpr.sub .num{font-size:.72rem;color:var(--muted)}
+.vpr .num{font:700 .82rem var(--f-mono);color:var(--mod)}
+.vpr input{min-width:0;width:100%;font:500 .86rem var(--f-body);padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink)}
+.vpr input:focus{outline:2px solid var(--mod);outline-offset:0}
+.mbp{border-left-color:var(--mod)}
+.mbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:12px}
+@media (max-width:600px){.mbgrid{grid-template-columns:1fr}}
+.mbc{background:var(--chip);border-radius:6px;padding:10px;display:grid;gap:8px;border-top:3px solid var(--mod)}
+.mbc .top{display:grid;grid-template-columns:auto minmax(0,1.3fr) minmax(0,1.2fr) 86px auto;gap:6px;align-items:center}
+.mbc .num{font:700 .9rem var(--f-mono);color:var(--mod)}
+.mbc input,.mbc select{min-width:0;width:100%;font:500 .86rem var(--f-body);padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink)}
+.mbc input:focus,.mbc select:focus{outline:2px solid var(--mod);outline-offset:0}
+.mbc table{font-size:.86rem}.mbc td{padding:2px 3px;border-top:0}.mbc th{padding:2px 3px}
+.mbc td.x{width:30px}.mbc td.u{width:84px}.mbc td.w{width:92px}
+.xb{width:26px;height:26px;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:5px;cursor:pointer;font:600 .9rem var(--f-mono)}
+.xb:hover{background:var(--err);border-color:var(--err);color:#fff}
+.mbsum{font:600 .8rem var(--f-mono);color:var(--muted)}
+.outp{border-left-color:var(--relay)}.outp h3{color:var(--relay)}.outp .drow.on .dn{color:var(--relay)}.outp .drow.on select{border-color:var(--relay)}.outp .drow.hot{background:color-mix(in srgb,var(--relay) 14%,transparent)}
+.dryp h3 .stp{text-transform:none;letter-spacing:0;color:var(--ink)}
+.menu{position:fixed;z-index:50;max-width:320px;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.22);padding:6px;min-width:240px}
+.menu h3{margin:2px 6px 6px;font:700 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:500 .92rem var(--f-body);padding:7px 8px;border-radius:5px;cursor:pointer}
+.menu button:hover,.menu button:focus-visible{background:var(--chip)}
+.menu .qs{display:inline-block;width:auto;border:1px solid var(--line);background:var(--chip);font:600 .82rem var(--f-mono);padding:4px 8px}
+.menu .stepper button{display:block;width:32px;padding:0;text-align:center;border-radius:0}
+.menu button small{font-family:var(--f-mono);color:var(--muted)}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Vutlan <span>Configurator</span> <small id="model" style="font:600 1.1rem var(--f-mono);color:var(--muted);letter-spacing:0;vertical-align:middle">VT825GG</small></h1>
+      <label class="msel">Model <select id="modelSel" aria-label="Controller model and power version"></select></label>
+      <p class="sub">Press <b>+</b> at any port to connect a device and <b>−</b> to remove it. The CAN port extends the system: VT408 units add analog ports and VT440 units add dry-contact inputs.</p>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--analog)"></i>Analog</span><span><i style="background:var(--dry)"></i>Dry contacts</span>
+      <span><i style="background:var(--can)"></i>CAN bus</span><span><i style="background:var(--relay)"></i>Outputs</span>
+      <span><i style="background:var(--mod)"></i>Slots &amp; modules</span><span><i style="background:var(--pwr)"></i>Power</span>
+    </div>
+  </header>
+  <div class="proj" id="proj">
+    <label for="preset">Project</label>
+    <div class="pctl" id="pctl"></div>
+    <div id="presetNote" class="pnote"></div>
+  </div>
+  <section class="panel order" id="export" hidden></section>
+  <section class="panel order" id="order" hidden></section>
+
+  <div class="box" id="frontBox">
+    <div class="side"><span id="frontLbl">Front panel</span> <span id="mountW"></span></div>
+    <div class="pv" id="front"></div>
+    <div id="chains"></div>
+  </div>
+
+  <div class="box" id="backBox">
+    <div class="side"><span id="backLbl">Back panel</span> <span id="backHint" style="text-transform:none;letter-spacing:0;font-weight:500"></span></div>
+    <div class="pv" id="back"></div>
+  </div>
+  <section class="panel dryp lwp" id="lwp" hidden></section>
+  <section class="panel dryp" id="dry" hidden></section>
+  <section class="panel dryp outp" id="outp-relay" hidden></section>
+  <section class="panel dryp outp" id="outp-out12" hidden></section>
+  <section class="panel dryp outp" id="outp-iso" hidden></section>
+  <section class="panel dryp mbp" id="mbp" hidden></section>
+  <section class="panel dryp vnp" id="vnet"></section>
+  <section class="panel dryp vnp" id="vmod"></section>
+
+  <div class="sum" id="sum"></div>
+  <div class="panel" id="connPanel"><h2>Connections <b id="connCount" style="font-family:var(--f-mono);letter-spacing:0;text-transform:none"></b></h2>
+    <p class="hint2">Describe what each sensor monitors or where it is mounted. Click a chip on the panels or type here; descriptions are saved with the project.</p>
+    <div class="tw"><table id="conn"></table></div></div>
+  <div class="lower">
+    <div class="panel"><h2>Parts list</h2><table id="bom"></table></div>
+    <div class="panel"><h2>Checks</h2><ul class="notes" id="notes"></ul></div>
+  </div>
+  <p class="foot" style="text-align:center;margin:18px 0 6px">Your projects are saved only in this browser on this device. Nothing is sent to Vutlan. Use Export to keep a copy.<br>Planning with an AI assistant such as Claude or ChatGPT? Give it <a href="llms.txt" target="_blank" rel="noopener">llms.txt</a> first: it lists every controller, sensor and rule used here.</p>
+</div>
+<div class="menu" id="menu" hidden></div>
+
+<script>
+/* ===== Catalog ===== */
+let UNIT={};   // limits of the open project's controller, set by applyBase()
+const OPT={
+  analog:[{id:"VT410",short:"410",name:"VT410 DC voltage monitor",s:1},{id:"VT424",short:"424",name:"VT424 DC millivoltmeter",s:1},
+          {id:"VT500",short:"500",name:"VT500 Temperature sensor",s:1},{id:"VT515",short:"515",name:"VT515 Outdoor temperature sensor",s:1},
+          {id:"VT525",short:"525",name:"VT525 Outdoor temperature sensor",s:1},{id:"VT510",short:"510",name:"VT510 Humidity sensor",s:1},
+          {id:"VT520",short:"520",name:"VT520 AC voltage monitor",s:1},{id:"VT520DIN",short:"520D",name:"VT520DIN AC voltage monitor",s:1},
+          {id:"VT530",short:"530",name:"VT530 Access sensor",note:"chainable",s:1,chain:true},{id:"VT540",short:"540",name:"VT540 Vibration sensor",s:1},
+          {id:"VT550",short:"550",name:"VT550 Wind velocity meter",s:1},{id:"VT560",short:"560",name:"VT560 Smoke detector",note:"chainable",s:1,chain:true},
+          {id:"VT572",short:"572",name:"VT572 Radar motion sensor",s:1},{id:"VT580",short:"580",name:"VT580 Dust particle sensor",s:1},
+          {id:"VT591",short:"591",name:"VT591 Leak sensor",note:"needs WLC cable",s:1,cable:true},{id:"VT593",short:"593",name:"VT593 Spot leak sensor",s:1}],
+  dry:[{id:"KMS30",short:"KMS",name:"KMS-30 Access sensor (contact magnet)",note:"Vutlan"},{id:"DR",short:"DR",name:"Door / reed switch"},{id:"UPS",short:"UPS",name:"UPS alarm contact"},{id:"FIR",short:"FIR",name:"Fire panel contact"},
+       {id:"GEN",short:"GEN",name:"Generator status contact"},{id:"ACU",short:"AC",name:"Air conditioner alarm contact"},{id:"CB",short:"CB",name:"Circuit breaker status contact"},
+       {id:"PIR",short:"PIR",name:"Motion detector (PIR) contact"},{id:"BTN",short:"BTN",name:"Push button / emergency button"},
+       {id:"DC",short:"DC",name:"Other dry contact"},{id:"CUS",short:"✎",name:"Name your hardware…",note:"type the name"}],
+  iso:[{id:"UPS",short:"UPS",name:"UPS"},{id:"GEN",short:"GEN",name:"Diesel generator"},{id:"CB",short:"CB",name:"Circuit breaker"},
+       {id:"CP",short:"CP",name:"Control panel"},{id:"ALM",short:"ALM",name:"Alarm system"},{id:"IND",short:"IND",name:"Other industrial equipment"},
+       {id:"CUS",short:"✎",name:"Name your hardware…",note:"type the name"}],
+  relay:[{id:"LOAD",name:"Power load (NC/NO/COM)"},{id:"LOCK",name:"Rack / door lock"},{id:"FAN",name:"Fan / cooling"},{id:"SIR",name:"230 V siren or light"},{id:"CUS",short:"✎",name:"Name your hardware…",note:"type the name"}],
+  out12:[{id:"VT103",name:"VT103 Alarm beacon"},{id:"VT105",name:"VT105 Strobe light"},{id:"LCK",name:"12V lock"},{id:"DEV",name:"12V device"},{id:"VT109",name:"VT109 Light tower",note:"uses E1 + E2"},{id:"CUS",short:"✎",name:"Name your hardware…",note:"type the name"}],
+  modem:[{id:"VT7670",name:"VT7670 LTE 4G modem"}],
+  p12:[{id:"PSU",short:"12V",name:"12 V DC power supply"},{id:"UPS",short:"UPS",name:"12 V DC from UPS / battery"}],
+  p48:[{id:"DC",short:"DC",name:"24–48 V DC feed"}],
+  usb:[{id:"CAM",name:"USBFHD Dome Camera"},{id:"USB",name:"USB flash drive (logs)"},{id:"HUB",name:"USB hub",note:"camera + flash drive"}],
+  ext:[{id:"485m",name:"VT485m Modbus RTU",note:"up to 32 devices"},{id:"485r",name:"VT485r OSDP v2 reader",note:"up to 4 readers"}],
+  sd:[{id:"SD",name:"microSD card",note:"SDHC / SDXC, up to 512 GB"}],
+  bat:[{id:"ACCU",name:"VT-ACCU rechargeable backup"}],
+  dc12:[{id:"UPS",name:"Backup via UPS 12V"},{id:"BAT",name:"Backup via battery 12V"}],
+  ac:[{id:"AC",name:"230 VAC feed"}],
+  dc:[{id:"DC",name:"24–48 V DC feed"}],
+  pin:[{id:"ADP",short:"12V",name:"12 V 2 A power adapter (included)"}],
+  lbat:[{id:"LB",short:"BAT",name:"Backup battery 9–11.1 V DC",note:"2-pin PH connector"}],
+  lora:[{id:"LORA",short:"LoRa",name:"LoRa RF module, EU868"}],
+  can:[{id:"VT408",name:"VT408 analog extension",note:"+8 analog ports"},{id:"VT408D",name:"VT408D analog extension, DIN rail",note:"+8 analog ports"},
+       {id:"VT440",name:"VT440 dry contacts unit",note:"+32 inputs, 64 with VT32"},{id:"VT450",name:"VT450 pressure + humidity + temp",note:"3 sensors",s:3},
+       {id:"VT460",name:"VT460 smoke + T/H",note:"3 sensors",s:3},{id:"VT490",name:"VT490 temp + humidity",note:"2 sensors",s:2}],
+};
+const byId=k=>Object.fromEntries(OPT[k].map(o=>[o.id,o]));
+/* LoRaWAN wireless sensors (LR800 only): no port, they talk to the LoRa antenna. s = sensor values counted toward the sensor limit */
+const LWT=[{id:"LR490",name:"LR490 Humidity and temperature sensor",s:2,note:"temperature + humidity"},{id:"LR530",name:"LR530 Access sensor",s:1,note:"door open / closed"},
+  {id:"LR560",name:"LR560 Smoke detector",s:1},{id:"LR590",name:"LR590 Water level sensor",s:1},{id:"LR690",name:"LR690 Outdoor dual sensor",s:2},
+  {id:"CUS",name:"Other LoRaWAN sensor",s:1,note:"name it, set its values"}];
+const LWTI=Object.fromEntries(LWT.map(t=>[t.id,t]));
+const lwS=d=>d.t==="CUS"?Math.max(1,d.s||1):LWTI[d.t].s;
+const lwSum=()=>UNIT.lora?(S.lw||[]).reduce((a,d)=>a+lwS(d),0):0;
+const lwName=d=>d.t==="CUS"?(d.name||"Other LoRaWAN sensor"):LWTI[d.t].name;
+/* Modbus RTU device templates: each parameter becomes one Modbus RTU read or write element in the Vutlan interface */
+const P=(n,u,w)=>({n,u:u||"",w:w?1:0});
+const MBT=[
+  {id:"EM3",name:"Energy meter, 3-phase",params:[P("Voltage L1","V"),P("Voltage L2","V"),P("Voltage L3","V"),P("Current L1","A"),P("Current L2","A"),P("Current L3","A"),P("Active power total","kW"),P("Power factor"),P("Frequency","Hz"),P("Active energy total","kWh")]},
+  {id:"EM1",name:"Energy meter, 1-phase",params:[P("Voltage","V"),P("Current","A"),P("Active power","W"),P("Apparent power","VA"),P("Power factor"),P("Frequency","Hz"),P("Active energy","kWh")]},
+  {id:"UPS",name:"UPS",params:[P("Input voltage","V"),P("Output voltage","V"),P("Load","%"),P("Battery charge","%"),P("Battery runtime","min"),P("Battery temperature","°C"),P("UPS status"),P("Shutdown command","",1)]},
+  {id:"ACU",name:"Air conditioner / CRAC",params:[P("Return air temperature","°C"),P("Supply air temperature","°C"),P("Humidity","%RH"),P("Alarm status"),P("Temperature setpoint","°C",1),P("On / off","",1)]},
+  {id:"GEN",name:"Generator controller",params:[P("Status"),P("Fuel level","%"),P("Battery voltage","V"),P("Output voltage","V"),P("Running hours","h"),P("Start / stop","",1)]},
+  {id:"TH",name:"Temperature / humidity transmitter",params:[P("Temperature","°C"),P("Humidity","%RH")]},
+  {id:"FLOW",name:"Flow / level meter",params:[P("Level","%"),P("Flow","m³/h"),P("Total volume","m³")]},
+  {id:"PLC",name:"PLC / I/O module",params:[P("Digital input 1"),P("Analog input 1"),P("Coil 1","",1)]},
+  {id:"CUS",name:"Other device (add parameters)",params:[]}];
+const MBTI=Object.fromEntries(MBT.map(t=>[t.id,t]));
+function mbNew(type,addr,name){return {type,addr,name:name||"",desc:"",params:JSON.parse(JSON.stringify(MBTI[type].params))}}
+const mbParams=()=>(S.mb||[]).reduce((a,d)=>a+d.params.length,0);
+const COLOR={lbat:"--pwr",lora:"--lora",analog:"--analog",dry:"--dry",relay:"--relay",out12:"--relay",modem:"--mod",usb:"--mod",ext:"--mod",sd:"--mod",bat:"--pwr",dc12:"--pwr",ac:"--pwr",dc:"--pwr",pin:"--pwr",iso:"--relay",p12:"--pwr",p48:"--pwr"};
+
+/* ===== Port map in render pixels (panel width 2000) ===== */
+const TL=164, BL=150;            // lane heights above/below each render
+const F825={h:186, ports:[]}, B825={h:204, ports:[]};
+const ax=[1085,1135,1185,1235];
+for(let i=0;i<4;i++){
+  F825.ports.push({id:"A"+(i+5),kind:"analog",x:ax[i],y:62,side:"top",box:[ax[i]-24,44,48,38]});
+  F825.ports.push({id:"A"+(i+1),kind:"analog",x:ax[i],y:117,side:"bot",box:[ax[i]-24,98,48,38]});
+}
+F825.ports.push({id:"MODEM",kind:"modem",x:1508,y:112,side:"top",box:[1414,96,188,52],ax:1520,antBox:[1556,104,46,34]});
+F825.ports.push({id:"USB",kind:"usb",x:1383,y:137,side:"bot",box:[1365,128,36,18]});
+F825.ports.sort((a,b)=>a.x-b.x);
+const C825=[{bus:0,label:"CAN",x:1811,y:118,box:[1782,92,58,52]}];
+
+// dry inputs: terminal pitch 16.65, groups of 6 (in, ⏚, in, in, ⏚, in)
+const DRY_K=[0,2,3,5];
+for(let n=0;n<16;n++){const g=Math.floor(n/4),j=n%4,x=275+(g*6+DRY_K[j])*16.65;
+  B825.ports.push({id:"D"+(n+1),kind:"dry",x,ax:272+n*25.8,y:52,side:"top",row:n%2,sm:true,box:[x-8,36,16,32],label:n+1});}
+B825.ports.push({id:"BAT",kind:"bat",x:1280,y:66,side:"top",box:[1171,57,218,128]});
+B825.ports.push({id:"AC_R",kind:"ac",x:1660,y:70,side:"top",box:[1617,22,150,140],fixedLabel:"Reserve"});
+B825.ports.push({id:"AC_M",kind:"ac",x:1847,y:70,side:"top",box:[1800,22,150,140],fixedLabel:"Main AC"});
+B825.ports.push({id:"DC_R",kind:"dc",x:1117,y:147,side:"bot",box:[1088,128,60,42],fixedLabel:"Reserve DC"});
+B825.ports.push({id:"DC_M",kind:"dc",x:1547,y:147,side:"bot",box:[1518,128,60,42],fixedLabel:"Main DC"});
+B825.ports.find(p=>p.id==="AC_R").fixedLabel="Reserve AC";
+B825.ports.push({id:"R2",kind:"relay",x:105,y:140,side:"bot",box:[62,120,77,38]});
+B825.ports.push({id:"R1",kind:"relay",x:174,y:140,side:"bot",box:[140,120,77,38]});
+B825.ports.push({id:"E2",kind:"out12",x:290,y:142,side:"bot",box:[280,126,22,32],ax:268});
+B825.ports.push({id:"E1",kind:"out12",x:330,y:142,side:"bot",box:[320,126,22,32],ax:352});
+B825.ports.push({id:"SD",kind:"sd",x:632,y:152,side:"bot",box:[596,145,72,14]});
+B825.ports.push({id:"EXT",kind:"ext",x:767,y:120,side:"bot",box:[719,74,98,98]});
+B825.ports.push({id:"DC12",kind:"dc12",x:941,y:142,side:"bot",box:[919,124,44,34]});
+
+/* VT335G: compact unit, renders drawn 1200 units wide; all inputs on one row */
+const F335={h:211, ports:[]}, B335={h:211, ports:[]};
+[136,210,283,356].forEach((x,i)=>F335.ports.push({id:"A"+(i+1),kind:"analog",x,y:104,side:"top",box:[x-34,60,68,90]}));
+F335.ports.push({id:"USB",kind:"usb",x:748,y:143,side:"bot",box:[718,128,62,30]});
+F335.ports.push({id:"SD",kind:"sd",x:960,y:146,side:"bot",box:[918,138,92,16]});
+const C335=[{bus:0,label:"CAN",x:455,y:112,box:[412,78,88,72]}];
+[276,320,343,388].forEach((x,n)=>B335.ports.push({id:"D"+(n+1),kind:"dry",x,ax:258+n*48,y:128,side:"top",row:n%2,sm:true,box:[x-10,104,20,46],label:n+1}));
+B335.ports.push({id:"E1",kind:"out12",x:178,y:128,side:"bot",box:[166,104,24,46],ax:170});
+B335.ports.push({id:"E2",kind:"out12",x:232,y:128,side:"bot",box:[220,104,24,46],ax:240});
+B335.ports.push({id:"MODEM",kind:"modem",x:520,y:112,side:"top",box:[430,78,290,72],ax:540,antBox:[606,96,36,52]});
+B335.ports.push({id:"EXT",kind:"ext",x:870,y:150,side:"bot",box:[812,32,118,165]});
+B335.ports.push({id:"DC12",kind:"dc12",x:985,y:128,side:"bot",box:[962,104,48,46]});
+B335.ports.push({id:"PIN",kind:"pin",x:1065,y:96,side:"top",box:[1040,75,52,68],fixedLabel:"DC 12V power",fixed:true});
+
+/* VT855: front like the VT825 with two CAN sockets (CAN1, CAN0); back like the VT825 with 32 dry inputs and 8 isolated outputs on the top row */
+const F855={h:186, ports:[]}, B855={h:204, ports:[]};
+[1087,1137,1186,1235].forEach((x,i)=>{F855.ports.push({id:"A"+(i+5),kind:"analog",x,y:68,side:"top",box:[x-24,48,48,42]});F855.ports.push({id:"A"+(i+1),kind:"analog",x,y:126,side:"bot",box:[x-24,108,48,42]})});
+F855.ports.push({id:"MODEM",kind:"modem",x:1508,y:118,side:"top",box:[1416,98,188,58],ax:1520,antBox:[1556,108,46,38]});
+F855.ports.push({id:"USB",kind:"usb",x:1385,y:146,side:"bot",box:[1366,138,38,18]});
+F855.ports.sort((a,b)=>a.x-b.x);
+const C855=[{bus:0,label:"CAN0",x:1813,y:118,ax:1868,box:[1786,100,56,54]},{bus:1,label:"CAN1",x:1751,y:118,ax:1696,box:[1724,100,54,54]}];
+{const DS=[64,164,265,366,467,568,668,770],P=98/6,K=[0,2,3,5];
+ for(let n=0;n<32;n++){const g=Math.floor(n/4),x=Math.round((DS[g]+(K[n%4]+.5)*P)*10)/10;
+   B855.ports.push({id:"D"+(n+1),kind:"dry",x,ax:72+n*25.2,y:54,side:"top",row:n%2,sm:true,box:[x-8,38,16,32],label:n+1})}
+ const OS=[893,1026],Q=16.05;
+ for(let n=0;n<8;n++){const x=Math.round((OS[Math.floor(n/4)]+(2*(n%4)+1)*Q)*10)/10;
+   B855.ports.push({id:"O"+(n+1),kind:"iso",x,ax:905+n*34,y:54,side:"top",row:n%2,sm:true,box:[x-16,38,32,32],label:"O"+(n+1)})}
+ B825.ports.filter(p=>p.kind!=="dry").forEach(p=>B855.ports.push(p))}
+
+/* VT336t: DIN-rail unit, one top-view render (2058×874 px) drawn 1300 units wide; ports on the top and bottom edges */
+const K336=1300/2058, k3=v=>Math.round(v*K336*10)/10, b3=b=>b.map(k3);
+const F336={h:k3(874), ports:[]}, B336={h:0, ports:[]};
+[[1950,1],[1812,2],[1655,3],[1518,4]].forEach(([x,n])=>F336.ports.push({id:"A"+n,kind:"analog",x:k3(x),y:k3(80),side:"top",box:b3([x-68,20,136,115])}));
+F336.ports.push({id:"MODEM",kind:"modem",x:k3(340),y:k3(75),side:"top",box:b3([20,15,655,120]),antBox:b3([572,20,76,76])});
+F336.ports.push({id:"SD",kind:"sd",x:k3(800),y:k3(80),side:"top",box:b3([730,30,140,105])});
+F336.ports.push({id:"USB",kind:"usb",x:k3(1148),y:k3(70),side:"top",box:b3([1110,25,80,85])});
+{const DX=[80,148,182,250,293,360,395,464,507,575];
+ DX.forEach((x,n)=>F336.ports.push({id:"D"+(n+1),kind:"dry",x:k3(x),ax:20+n*37,y:k3(800),side:"bot",row:n%2,sm:true,box:b3([x-17,768,34,68]),label:n+1}));
+ for(let n=0;n<5;n++){const x=766+n*73.5;F336.ports.push({id:"O"+(n+1),kind:"iso",x:k3(x),ax:465+n*52,y:k3(800),side:"bot",row:n%2,sm:true,box:b3([x-35,768,70,68]),label:"O"+(n+1)})}}
+F336.ports.push({id:"EXT",kind:"ext",x:k3(1233),y:k3(800),ax:770,side:"bot",box:b3([1110,745,250,112])});
+F336.ports.push({id:"E1",kind:"out12",x:k3(1437),y:k3(800),ax:880,side:"bot",box:b3([1419,768,36,68])});
+F336.ports.push({id:"E2",kind:"out12",x:k3(1510),y:k3(800),ax:965,side:"bot",box:b3([1492,768,36,68])});
+F336.ports.push({id:"PDC",kind:"p48",x:k3(1686),y:k3(800),ax:1065,side:"bot",box:b3([1630,762,112,78]),fixedLabel:"24–48V DC"});
+F336.ports.push({id:"R12",kind:"p12",x:k3(1812),y:k3(795),ax:1150,side:"bot",box:b3([1772,748,80,84]),fixedLabel:"Reserve 12V"});
+F336.ports.push({id:"P12",kind:"p12",x:k3(1946),y:k3(800),ax:1245,side:"bot",box:b3([1888,768,118,68]),fixedLabel:"12V DC"});
+const C336=[{bus:0,label:"CAN",x:k3(1265),y:k3(80),box:b3([1200,25,130,110]),side:"top"}];
+
+/* VT225t: plastic desktop unit. Top box = back panel (relays, CAN, dry inputs, 12 V), lower box = front panel (A1–A4, USB, SD, LEDs) */
+const F225={h:237, ports:[]}, B225={h:236, ports:[]};
+F225.ports.push({id:"E1",kind:"out12",x:212,y:132,ax:185,side:"bot",box:[197,108,30,64],fixedLabel:"Relay 1"});
+F225.ports.push({id:"E2",kind:"out12",x:273,y:132,ax:300,side:"bot",box:[258,108,30,64],fixedLabel:"Relay 2"});
+F225.ports.push({id:"D1",kind:"dry",x:813,y:140,ax:790,side:"bot",box:[799,112,28,62],label:1});
+F225.ports.push({id:"D2",kind:"dry",x:868,y:140,ax:890,side:"bot",box:[854,112,28,62],label:2});
+F225.ports.push({id:"PIN",kind:"pin",x:957,y:96,side:"top",box:[918,82,78,92],fixedLabel:"DC 12V power",fixed:true});
+const C225=[{bus:0,label:"CAN",x:698,y:125,box:[650,80,96,96]}];
+/* LR800 LoRaWAN gateway server: renders 2202×444, drawn 1200 units wide (front on top: CAN is on the front) */
+const FLR={h:242, ports:[]}, BLR={h:242, ports:[]};
+FLR.ports.push({id:"USB",kind:"usb",x:276,y:160,side:"bot",box:[243,146,68,27]});
+FLR.ports.push({id:"SD",kind:"sd",x:538,y:165,side:"bot",box:[483,155,111,18]});
+FLR.ports.push({id:"MODEM",kind:"modem",x:812,y:109,side:"top",box:[675,42,328,138],ax:830,antBox:[886,112,52,52]});
+const CLR=[{bus:0,label:"CAN",x:162,y:128,box:[109,82,106,93]}];
+BLR.ports.push({id:"PIN",kind:"pin",x:192,y:131,side:"top",box:[158,90,68,83],fixedLabel:"DC 12V power",fixed:true});
+BLR.ports.push({id:"DC12",kind:"dc12",x:300,y:145,side:"bot",box:[266,117,69,56]});
+BLR.ports.push({id:"LBAT",kind:"lbat",x:388,y:155,side:"top",box:[363,136,48,37],ax:400,label:"Battery"});
+BLR.ports.push({id:"D1",kind:"dry",x:634,y:145,ax:600,side:"top",row:0,sm:true,box:[620,118,28,56],label:1});
+BLR.ports.push({id:"D2",kind:"dry",x:686,y:145,ax:690,side:"top",row:1,sm:true,box:[672,118,28,56],label:2});
+BLR.ports.push({id:"E1",kind:"out12",x:767,y:145,side:"bot",box:[734,117,67,56],fixedLabel:"Relay"});
+BLR.ports.push({id:"LORA",kind:"lora",x:989,y:136,side:"bot",box:[872,49,232,136],ax:985,fixed:true,fixedLabel:"LoRa antenna"});
+[340,432,523,614].forEach((x,i)=>B225.ports.push({id:"A"+(i+1),kind:"analog",x,y:110,side:"top",box:[x-42,62,84,110]}));
+B225.ports.push({id:"USB",kind:"usb",x:228,y:165,side:"bot",box:[196,152,64,28]});
+B225.ports.push({id:"SD",kind:"sd",x:748,y:165,side:"bot",box:[693,155,110,22]});
+
+/* ===== Controllers (base models) ===== */
+const CTRL={
+  VT825:{label:"VT825 · 8 analog, 16 dry inputs, 2 relays",pw:2000,front:F825,back:B825,can:C825,frontImg:"images/front.webp",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:130,onboard:3,onboardText:"temperature, main and reserve voltage",elements:1000,analog:8,dry:16,modbusMax:32,readersMax:4,readersPowered:2},
+    leds:[[1471,150,"on"],[1792,148,"can"],[1630,150,"E1"],[1658,150,"E2"],[1687,150,"R1","o"],[1716,150,"R2","o"]],
+    hint:"· click an AC or DC input to change the power version",power:{AC_M:"AC"},powerMenu:true,opts:{modem:["VT7670"]}},
+  VT225t:{label:"VT225t · 4 analog, 2 dry inputs, 2 relays (12 V)",pw:1200,front:F225,back:B225,can:C225,frontImg:"images/back-225.webp",frontLabel:"Back panel",backLabel:"Front panel",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:100,onboard:0,onboardText:"none listed",elements:700,analog:4,dry:2,modbusMax:32,readersMax:4,readersPowered:2,toConfirm:true},
+    leds:[],backLeds:[[847,178,"E1"],[877,178,"E2"],[908,178,"on"],[997,178,"can"]],hint:"",power:{PIN:"ADP"},
+    plabel:{E1:"Relay 1 (12 V, 0.25 A)",E2:"Relay 2 (12 V, 0.25 A)"},powerNote:" Relays 1 and 2 are 12 V, 0.25 A electronic outputs.",
+    models:{G:{name:"VT225t",power:"12 V DC (adapter included)",img:"images/front-225.webp",price:null}}},
+  VT336t:{label:"VT336t · DIN rail, 4 analog, 10 dry inputs, 5 outputs",pw:1300,front:F336,back:B336,can:C336,frontImg:"images/vt336t.webp",noBack:true,frontLabel:"Top view",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:100,onboard:1,onboardText:"temperature",elements:1000,analog:4,dry:10,iso:5,modbusMax:32,readersMax:4,readersPowered:2,toConfirm:true},
+    leds:[[k3(1565),k3(763),"on"],[k3(1346),k3(70),"can"]],hint:"",power:{P12:"PSU"},
+    opts:{modem:["VT7670"],ext:["485m"]},
+    powerNote:" Optional reserve 12 V DC input and 24–48 V DC input on the bottom edge.",
+    models:{G:{name:"VT336t",power:"12 V DC (adapter included)",price:null}}},
+  VT855:{label:"VT855 · 8 analog, 32 dry inputs, 8 outputs, 2 CAN buses",pw:2000,front:F855,back:B855,can:C855,frontImg:"images/front-855.webp",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:130,onboard:3,onboardText:"temperature, main and reserve voltage",elements:1000,analog:8,dry:32,iso:8,modbusMax:32,readersMax:4,readersPowered:2},
+    leds:[[1475,161,"on"],[1737,160,"can1"],[1795,160,"can0"],[1630,161,"E1"],[1655,161,"E2"],[1680,161,"R1","o"],[1705,161,"R2","o"]],
+    hint:"· click an AC or DC input to change the power version",power:{AC_M:"AC"},powerMenu:true,opts:{modem:["VT7670"]},
+        models:{G:{name:"VT855G",power:"1× 230 VAC",img:"images/back-855g.webp"},GG:{name:"VT855GG",power:"2× 230 VAC (redundant)",img:"images/back-855gg.webp"},
+      DC:{name:"VT855DC",power:"1× 24–48 V DC",img:"images/back-855g.webp",pending:true},DCDC:{name:"VT855DCDC",power:"2× 24–48 V DC (redundant)",img:"images/back-855dcdc.webp"},
+      GDC:{name:"VT855GDC",power:"230 VAC + 24–48 V DC reserve (redundant)",img:"images/back-855gdc.webp"}}},
+  LR800:{label:"LR800 · LoRaWAN gateway server, 2 dry inputs, 1 relay",pw:1200,front:FLR,back:BLR,can:CLR,frontImg:"images/front-lr800.webp",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:100,onboard:3,onboardText:"temperature, main and reserve voltage",elements:700,analog:0,dry:2,modbusMax:0,readersMax:0,readersPowered:0,lora:true},
+    leds:[[734,185,"on"],[946,185,"E1","o"]],backLeds:[[890,143,"on"],[931,143,"lw"],[1042,143,"lw"],[1084,143,"on"]],
+    hint:"· LoRaWAN sensors connect wirelessly, see the LoRaWAN panel below",power:{PIN:"ADP",LORA:"LORA"},opts:{modem:["VT7670"],out12:["VT103","VT105","LCK","DEV","CUS"]},
+    plabel:{E1:"Relay output (12 V, 0.25 A)",LORA:"LoRa antenna (EU868)"},
+    powerNote:" Main 12 V DC jack, reserve 12 V DC terminal and a 9–11.1 V backup battery input on the back. The relay output is 12 V, 0.25 A.",
+    models:{G:{name:"LR800",power:"12 V DC, reserve 12 V DC, battery backup 9–11.1 V",img:"images/back-lr800.webp",price:392}}},
+  VT335G:{label:"VT335G · 4 analog, 4 dry inputs",pw:1200,front:F335,back:B335,can:C335,frontImg:"images/front-335g.webp",
+    unit:{canMax:24,canPsuAbove:12,maxSensors:100,onboard:1,onboardText:"temperature",elements:1000,analog:4,dry:4,modbusMax:32,readersMax:4,readersPowered:2,toConfirm:true},
+    leds:[[615,152,"on"],[697,152,"can"],[1036,152,"E1"],[1060,152,"E2"]],
+    hint:"",power:{PIN:"ADP"},opts:{modem:["VT7670"]},
+    mounts:[{id:"DRP03",name:"DRP-03 DIN rail holder",note:"DIN rail"},{id:"VT123",name:"VT123 Wall mounting brackets",note:"wall"},
+      {id:"VT122t",name:"VT122t 19\" 1U bracket for VT335 + VT408",note:"19\" rack, unit and one VT408"},{id:"VT122i",name:"VT122i 19\" 1U bracket for VT335",note:"19\" rack, unit only"}],
+    models:{G:{name:"VT335G",power:"12 V DC (2 A adapter included)",img:"images/back-335g.webp",price:360}}},
+};
+let BASE=CTRL.VT825, FRONT=F825, BACK=B825, CANP=C825;
+/* CAN helpers: devices of one bus, position of a device on its bus, bus label */
+const busOf=d=>d.bus||0, busIdx=b=>S.can.map((d,i)=>busOf(d)===b?i:-1).filter(i=>i>=0), posOf=ci=>busIdx(busOf(S.can[ci])).indexOf(ci);
+const busName=b=>CANP.length>1?CANP.find(c=>c.bus===b).label:"CAN";
+const canName=ci=>`${busName(busOf(S.can[ci]))} #${posOf(ci)+1}`;
+const isLast=ci=>{const L=busIdx(busOf(S.can[ci]));return L[L.length-1]===ci};
+function sortBuses(){S.can=S.can.filter(d=>busOf(d)===0).concat(S.can.filter(d=>busOf(d)===1))}
+const mountOf=()=>(BASE.mounts||[]).find(m=>m.id===S.mount);
+function renderMount(){const w=document.getElementById("mountW");if(!BASE.mounts){w.innerHTML="";return}
+  w.innerHTML=`<label class="msel2">Mounting <select id="mountSel" aria-label="Mounting">${[{id:"",name:"Desktop (no mount)"},...BASE.mounts].map(m=>`<option value="${m.id}"${(S.mount||"")===m.id?" selected":""}>${m.name}${m.note?" · "+m.note:""}</option>`).join("")}</select></label>`}
+document.addEventListener("change",e=>{if(e.target.id==="mountSel"){if(e.target.value)S.mount=e.target.value;else delete S.mount;setD("MOUNT","");render()}});
+function applyBase(id){BASE=CTRL[id]||CTRL.VT825;UNIT={...BASE.unit};FRONT=BASE.front;BACK=BASE.back;CANP=BASE.can;
+  MODELS=BASE.models||MODELS825;PORT=Object.fromEntries([...FRONT.ports,...BACK.ports].map(p=>[p.id,p]))}
+
+/* ===== State (sample rack) ===== */
+const S={p:{A1:"VT500",A2:"VT510",A3:"VT500",A4:"VT593",A5:"VT560*3",D1:"DR",D2:"DR",D3:"UPS",R1:"FAN",E1:"VT103",AC_M:"AC",AC_R:"AC",EXT:"485m"},
+  can:[{t:"VT408",ports:["VT500","VT510","VT591@18",null,null,null,null,null]}], mb:[mbNew("EM3",1,"Main switchboard meter"),mbNew("UPS",2,"UPS A")], readers:0, hub:{cam:true,flash:true},
+  v:{EMAIL:2,TG:1,TRAP:1,GET:0,HTTP:0,WSMS:0,GATE:0,API:0,PING:2,MBR:0,MBW:0,IPC:0,SMS:1,DIAL:0}};
+S.p.MODEM="VT7670";
+/* Virtual elements: software functions that use the network (LAN or VT7670) or the modem itself */
+const VIRT={
+  net:[{id:"EMAIL",name:"Email notification",multi:20,ph:"Recipient, e.g. noc@company.com"},{id:"TG",name:"Telegram notification",ph:"Chat or group, e.g. @noc_alerts"},
+       {id:"TRAP",name:"SNMP Trap",ph:"SNMP manager, e.g. 10.0.0.5"},{id:"GET",name:"SNMP GET",ph:"System polling the unit, e.g. Zabbix 10.0.0.7"},
+       {id:"HTTP",name:"HTTP request",ph:"URL, e.g. https://example.com/alarm"},{id:"WSMS",name:"Web SMS",ph:"SMS service and phone number"},
+       {id:"GATE",name:"SMS Gate",ph:"SMS gateway and phone number"},{id:"API",name:"API",ph:"System using the API, e.g. BMS"},
+       {id:"PING",name:"PING",ph:"Host or IP to check, e.g. 192.168.1.1"},{id:"MBR",name:"Modbus TCP read",ph:"Device IP and register, e.g. 10.0.0.20 · 40001"},
+       {id:"MBW",name:"Modbus TCP write",ph:"Device IP and register, e.g. 10.0.0.21 · 40010"},{id:"IPC",name:"IP camera",note:"view only",max:4,ph:"Camera name or IP, e.g. 10.0.0.30"}],
+  modem:[{id:"SMS",name:"SMS notification",multi:20,ph:"Phone number, e.g. +421 900 000 000"},{id:"DIAL",name:"Dial task",note:"phone call",ph:"Phone number to call"}]};
+/* Planned details of each virtual element: S.vd[id] = [{t: target, d: purpose}], one entry per element; Email / SMS: r = recipients (up to 20 per element) */
+function vsync(st){st.vd=st.vd||{};[...VIRT.net,...VIRT.modem].forEach(i=>{if(i.max&&st.v[i.id]>i.max)st.v[i.id]=i.max;const a=st.vd[i.id]=(st.vd[i.id]||[]).slice(0,st.v[i.id]);while(a.length<st.v[i.id])a.push({t:"",d:""});if(i.multi)a.forEach(e=>{if(!Array.isArray(e.r)){e.r=e.t?[e.t]:[""];e.t=""}if(!e.r.length)e.r.push("");e.r=e.r.slice(0,i.multi)})})}
+const vsum=()=>Object.values(S.v).reduce((a,b)=>a+b,0);
+const elements=()=>tally().s+vsum();
+/* Power versions: G = 1×AC, GG = 2×AC, DC = 1×DC, DCDC = 2×DC, GDC = AC + DC */
+const MODELS825={G:{name:"VT825G",power:"1× 230 VAC",img:"images/back-g.webp",price:448},GG:{name:"VT825GG",power:"2× 230 VAC (redundant)",img:"images/back.webp"},
+  DC:{name:"VT825DC",power:"1× 24–48 V DC",img:"images/back-dc.webp"},DCDC:{name:"VT825DCDC",power:"2× 24–48 V DC (redundant)",img:"images/back-dcdc.webp"},
+  GDC:{name:"VT825GDC",power:"230 VAC + 24–48 V DC reserve (redundant)",img:"images/back-gdc.webp"}};
+let MODELS=MODELS825;
+function variant(p=S.p){if(!BASE.powerMenu)return "G";const a=!!p.AC_M,ar=!!p.AC_R,d=!!p.DC_M,dr=!!p.DC_R;
+  if(a&&(d||dr))return "GDC"; if(a)return ar?"GG":"G"; if(d)return dr?"DCDC":"DC"; return "G"}
+const model=()=>MODELS[variant()].name;
+const PWR=["AC_M","AC_R","DC_M","DC_R"];
+function validPower(p){const a=!!p.AC_M,ar=!!p.AC_R,d=!!p.DC_M,dr=!!p.DC_R;
+  if(!a&&!d)return false; if(ar&&!a)return false; if(dr&&!d)return false; if(a&&d&&(ar||dr))return false; return true}
+function powerWhy(id,adding){const t={...S.p};if(adding)t[id]="x";else delete t[id];
+  if(validPower(t))return "";
+  if(!adding)return "The unit needs at least one main power input";
+  if(id==="AC_R")return S.p.AC_M?"Reserve AC is only on the VT825GG (remove the DC feed first)":"Connect main AC first";
+  if(id==="DC_R")return S.p.DC_M?"Reserve DC is only on the VT825DCDC (remove the AC feed first)":"Connect main DC first";
+  return "Remove the reserve input first: AC + DC (VT825GDC) uses one of each"}
+
+/* ===== Projects (presets) ===== */
+const DEMO=JSON.parse(JSON.stringify(S));
+function blank(){const v={};[...VIRT.net,...VIRT.modem].forEach(i=>v[i.id]=0);v.EMAIL=1;v.TRAP=1;
+  return {p:{AC_M:"AC",AC_R:"AC"},can:[],mb:[],readers:0,hub:{cam:true,flash:true},v}}
+const R5=["VT500","VT500","VT500","VT530","VT530",null,null,null];        // 3 temp + 2 door contacts, one port each
+const R4=["VT500","VT500","VT500","VT530*2"];                          // 3 temp + both doors chained on one port
+const racks=(row,n)=>Array.from({length:n},(_,i)=>row+String(i+1).padStart(2,"0"));
+function rowUnit(row,n,leak,opt){const x=blank();
+  Object.assign(x.p,{A1:"VT500",A2:"VT510",A3:"VT500",A4:"VT510",A5:"VT560",A6:"VT591@"+leak});
+  if(opt){const r=racks(row,n);for(let i=0;i<n;i+=2)x.can.push({t:"VT408",label:r[i+1]?`Racks ${r[i]} + ${r[i+1]}`:"Rack "+r[i],ports:r[i+1]?[...R4,...R4]:[...R4,null,null,null,null]})}
+  else x.can=racks(row,n).map(l=>({t:"VT408",label:"Rack "+l,ports:[...R5]}));
+  return x}
+const PRESETS={};   // public version: no sample projects
+/* ===== Saved projects (kept in this browser) ===== */
+const STORE="vutlan-configurator-v1";
+let PJ={list:[],cur:null}, pmode="";   // pmode: "" | "rename" | "delete"
+function persist(){try{localStorage.setItem(STORE,JSON.stringify(PJ))}catch(e){}}
+function snapshot(){return JSON.parse(JSON.stringify(S))}
+function clean(st){const ok=v=>!v||!!byId("analog")[String(v).split(/[*@]/)[0]];   // drop sensors no longer in the catalog
+  Object.keys(st.p||{}).forEach(k=>{if(/^A[1-8]$/.test(k)&&!ok(st.p[k]))delete st.p[k]});
+  (st.can||[]).forEach(d=>{if(d.ports)d.ports=d.ports.map(v=>ok(v)?v:null)});
+  st.can=(st.can||[]).filter(d=>byId("can")[d.t]);
+  st.cust=st.cust||{};
+  if(!Array.isArray(st.mb)){st.mb=Array.from({length:Math.min(32,st.modbus||0)},(_,i)=>({type:"CUS",addr:i+1,name:"Modbus device "+(i+1),desc:"",params:[P("Value")]}))}delete st.modbus;   // older projects: a device count only
+  {const nb=((CTRL[st.base]||{}).can||[1]).length;(st.can||[]).forEach(d=>{d.bus=d.bus&&nb>1?1:0});st.can=(st.can||[]).filter(d=>d.bus===0).concat((st.can||[]).filter(d=>d.bus===1))}if(st.mount&&!((CTRL[st.base]||{}).mounts||[]).some(m=>m.id===st.mount))delete st.mount;
+  (st.can||[]).forEach(d=>{if(d.t!=="VT440")return;   // VT440: one entry per input (hardware id), custom names and descriptions
+    if(!Array.isArray(d.inp)){d.inp=Array(64).fill(null);for(let k=0;k<Math.min(d.n||0,64);k++)d.inp[k]="DC"}
+    d.cust=d.cust||[];d.idesc=d.idesc||[]});
+  st.desc=st.desc||{};st.ant=!!st.ant;st.base=CTRL[st.base]?st.base:"VT825";st.p=st.p||{};
+  if(st.base==="VT335G")st.p.PIN="ADP";
+  if(st.p.MODEM==="VT740")st.p.MODEM="VT7670";   // VT740 is discontinued, replaced by the VT7670
+  if(st.base==="LR800"){st.p.PIN="ADP";st.p.LORA="LORA"}
+  st.lw=Array.isArray(st.lw)?st.lw.filter(d=>LWTI[d.t]):[];delete st.lant;
+  if((st.base==="VT825"||st.base==="VT855")&&st.p.AC_M&&st.p.DC_M){delete st.p.DC_M;st.p.DC_R="DC";if(st.desc.DC_M){st.desc.DC_R=st.desc.DC_M;delete st.desc.DC_M}}   // older GDC projects used the main DC terminal
+  st.v=st.v||{};[...VIRT.net,...VIRT.modem].forEach(i=>{st.v[i.id]=st.v[i.id]||0});vsync(st);return st}
+function useState(st){Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,clean(JSON.parse(JSON.stringify(st))));applyBase(S.base)}
+/* Undo / redo: every change made through the page becomes one step (per open project, this session) */
+let UNDO=[],REDO=[],lastJSON=null,restoring=false;
+function trackHistory(){const now=JSON.stringify(S);if(lastJSON!==null&&now!==lastJSON&&!restoring){UNDO.push(lastJSON);if(UNDO.length>200)UNDO.shift();REDO=[]}lastJSON=now}
+function resetHistory(){UNDO=[];REDO=[];lastJSON=null}
+function undo(){if(!UNDO.length)return;REDO.push(JSON.stringify(S));restoring=true;useState(JSON.parse(UNDO.pop()));closeMenu();render();restoring=false}
+function redo(){if(!REDO.length)return;UNDO.push(JSON.stringify(S));restoring=true;useState(JSON.parse(REDO.pop()));closeMenu();render();restoring=false}
+function emptyState(){const x=blank();Object.keys(x.v).forEach(k=>x.v[k]=0);x.base=S.base||"VT825";x.p={...CTRL[x.base].power};return x}
+const curP=()=>PJ.list.find(p=>p.id===PJ.cur);
+function newId(){return "p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function uniqueName(base){let n=base,i=2;while(PJ.list.some(p=>p.name===n))n=`${base} (${i++})`;return n}
+function initProjects(){
+  try{const raw=localStorage.getItem(STORE);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.list)&&d.list.length)PJ=d}}catch(e){}
+  if(!PJ.list.length){PJ.list=[];PJ.seeded=[]}
+  if(!PJ.list.length){const st=blank();Object.keys(st.v).forEach(k=>st.v[k]=0);st.base="VT825";st.p={...CTRL.VT825.power};st.mb=[];PJ.list.push({id:newId(),name:"My project",note:"",state:st});PJ.cur=PJ.list[0].id}   // first visit: one empty project
+  const h=location.hash.slice(1); if(PJ.list.some(p=>p.id===h))PJ.cur=h;
+  if(!curP())PJ.cur=PJ.list[0].id;
+  useState(curP().state);
+}
+function switchTo(id){const c=curP();if(c)c.state=snapshot();PJ.cur=id;pmode="";resetHistory();useState(curP().state);persist();closeMenu();render()}
+function addProject(state,name,note){const p={id:newId(),name:uniqueName(name),note:note||"",state};PJ.list.push(p);switchTo(p.id)}
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let orderOpen=false, exportOpen=false, exportPick=null;
+/* ===== Export: one project or the order summary, as an Excel file (or copied as a table) ===== */
+function projectSheets(p){const keep=snapshot();useState(p.state);
+  const t=tally(), M=MODELS[variant()], bom=computeBom();
+  const conn=connPaths().map(x=>[where(x),devName(x),getD(x)]);
+  const can=S.can.map((d,i)=>[canName(i),d.t,d.label||"",posOf(i)<UNIT.canPsuAbove?"Controller":"CAN-12V-1A"]);
+  const mbRows=S.p.EXT==="485m"?S.mb.flatMap((d,i)=>d.params.length?d.params.map((q,j)=>[i+1,d.name||"",MBTI[d.type].name,d.addr,q.n,q.u,q.w?"Write":"Read",j?"":d.desc||""]):[[i+1,d.name||"",MBTI[d.type].name,d.addr,"","","",d.desc||""]]):[];
+  const lwRows=UNIT.lora?S.lw.map((d,i)=>[i+1,d.t==="CUS"?"Other LoRaWAN sensor":LWTI[d.t].name,d.name||"",lwS(d),d.desc||""]):null;
+  const vRows=[["Network",VIRT.net],["Modem",VIRT.modem]].flatMap(([g,L])=>L.flatMap(it=>(S.vd[it.id]||[]).flatMap((e,k)=>it.multi?e.r.map((r,j)=>[g,it.name,k+1,r,j?"":e.d]):[[g,it.name,k+1,e.t,e.d]])));
+  useState(keep);
+  return {
+    "Project":[["Project",p.name],["Description",p.note||""],["Controller",M.name+" ("+M.power+")"],["Sensors & I/O",`${t.s} of ${UNIT.maxSensors}`],["CAN devices",`${t.can} of ${UNIT.canMax}`],["Exported",new Date().toLocaleString()]],
+    "Parts list":[["Item","Qty","Supplied by","Unit MSRP €"],...bom.map(([n,q,pr])=>[n,q,isVutlan(n)?"Vutlan":"Others",pr||""])],
+    "Connections":[["Connected to","Device","Description"],...conn],
+    "CAN bus":[["Bus / position","Device","Name","Power from"],...can],
+    "Modbus RTU":[["Device #","Name","Type","Address","Parameter","Unit","Read / write","Description"],...mbRows],
+    "Network elements":[["Group","Element","#","Recipient / target","Purpose"],...vRows],
+    ...(lwRows?{"LoRaWAN sensors":[["#","Sensor","Name","Sensor values","Location"],...lwRows]}:{})}}
+function summarySheets(){const {rows,orows}=orderData();const sel=PJ.list.filter(p=>orderQty(p.id)>0);
+  return {
+    "Order":[["Item","Qty","Unit MSRP €","Total MSRP €","From projects"],...rows.map(([n,r])=>[n,r.q,r.price||"",r.price?+(r.price*r.q).toFixed(2):"",r.by.join("; ")])],
+    "Supplied by others":[["Item","Qty"],...orows.map(([n,r])=>[n,r.q])],
+    "Projects":[["Project","Copies","Description"],...sel.map(p=>[p.name,orderQty(p.id),p.note||""])]}}
+const safeName=t=>String(t).replace(/[\\/:*?"<>|]+/g,"-").slice(0,80);
+function loadXLSX(){return window.XLSX?Promise.resolve():new Promise((ok,bad)=>{const sc=document.createElement("script");
+  sc.src="lib/xlsx.full.min.js";sc.onload=ok;sc.onerror=()=>bad(new Error("Excel library could not load"));document.head.appendChild(sc)})}
+async function doExport(btn){const what=exportPick;const sheets=what==="__summary"?summarySheets():projectSheets(PJ.list.find(p=>p.id===what));
+  const name=what==="__summary"?"Vutlan order summary":"Vutlan - "+PJ.list.find(p=>p.id===what).name;
+  const msg=document.getElementById("exMsg");
+  try{await loadXLSX();const wb=XLSX.utils.book_new();
+    Object.entries(sheets).forEach(([sn,data])=>{const ws=XLSX.utils.aoa_to_sheet(data);ws["!cols"]=data[0].map((_,i)=>({wch:Math.min(60,Math.max(10,...data.map(r=>String(r[i]??"").length+2)))}));XLSX.utils.book_append_sheet(wb,ws,sn.slice(0,31))});
+    const out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+    const r=await saveFile(safeName(name)+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+    msg.textContent=saveMsg(r,safeName(name)+".xlsx")}
+  catch(e){msg.textContent=`${e.message}. Use "Copy as table" and paste into Excel instead.`}}
+function copyExport(btn){const what=exportPick;const sheets=what==="__summary"?summarySheets():projectSheets(PJ.list.find(p=>p.id===what));
+  const t=Object.entries(sheets).map(([sn,data])=>sn.toUpperCase()+"\n"+data.map(r=>r.join("\t")).join("\n")).join("\n\n");
+  const done=()=>{btn.textContent="Copied";setTimeout(()=>btn.textContent="Copy as table",1500)};
+  try{navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done))}catch(err){fallbackCopy(t,done)}}
+/* Saving files: inside Claude through the viewer's download prompt, on a normal website as a browser download */
+let _dl;
+async function saveFile(name,blob){
+  if(_dl===undefined) _dl=(window.claude&&window.claude.use)?await window.claude.use("downloads").catch(()=>null):null;
+  if(_dl){try{await _dl.save({filename:name,data:blob});return "saved"}
+    catch(e){if(e&&e.code==="declined")return "declined";if(e&&e.code==="rate_limited")return "busy";
+      if(!e||!["unavailable","not_granted","capability_disabled","capability_removed"].includes(e.code))throw new Error(e&&e.message||"The file could not be saved")}}
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);return "browser"}
+function saveMsg(r,label){return r==="saved"?`Saved ${label}.`:r==="declined"?"Download cancelled.":r==="busy"?"Another download prompt is open. Finish it, then try again.":`${label} downloaded. If nothing appeared, check your browser's downloads.`}
+/* PDF: each section is rendered to an image exactly as the browser shows it, then laid out on A4 landscape pages */
+const LIB_H2I="lib/html-to-image.js", LIB_PDF="lib/jspdf.umd.min.js";
+const loadJs=src=>new Promise((ok,bad)=>{if(document.querySelector(`script[src="${src}"]`)&&(src===LIB_PDF?window.jspdf:window.htmlToImage))return ok();
+  const sc=document.createElement("script");sc.src=src;sc.onload=ok;sc.onerror=()=>bad(new Error("PDF library could not load"));document.head.appendChild(sc)});
+const frames=n=>new Promise(r=>{const f=()=>(--n<=0?r():requestAnimationFrame(f));requestAnimationFrame(f)});
+async function doPdf(btn,mode){
+  const msg=document.getElementById("exMsg"), what=exportPick, label=btn.textContent;
+  btn.disabled=true;btn.textContent="Preparing PDF…";msg.textContent="";
+  const save={cur:PJ.cur,state:snapshot(),undo:UNDO.slice(),redo:REDO.slice(),last:lastJSON,order:orderOpen,exp:exportOpen,scroll:scrollY};
+  try{
+    await loadJs(LIB_H2I);await loadJs(LIB_PDF);
+    const summary=what==="__summary", P=summary?null:PJ.list.find(p=>p.id===what);
+    const c=curP();if(c)c.state=snapshot();
+    restoring=true;
+    if(summary){orderOpen=true;exportOpen=false;render()}
+    else{PJ.cur=P.id;useState(P.state);exportOpen=false;orderOpen=false;render()}
+    document.body.classList.add("capturing");closeMenu();
+    await frames(3);await Promise.all([...document.images].map(i=>i.decode?i.decode().catch(()=>{}):0));drawCanLines();await frames(2);
+    const nodes=summary?["#order"]:["#frontBox","#backBox","#sum",".lower","#connPanel"];
+    const bg=getComputedStyle(document.body).backgroundColor, shots=[];
+    const PR=1.6;
+    for(const sel of nodes){const n=document.querySelector(sel);if(!n||n.hidden)continue;
+      const top=n.getBoundingClientRect().top;   // safe page-break points: tops of CAN cards, rows of cards, table rows
+      const br=[...n.querySelectorAll(".card[data-chain],.vpc,.chainhead,tr,.side")].map(e=>Math.round((e.getBoundingClientRect().top-top-6)*PR)).filter(v=>v>0);
+      const cv=await htmlToImage.toCanvas(n,{pixelRatio:PR,backgroundColor:bg,skipFonts:true,cacheBust:false});cv._br=[...new Set(br)].sort((a,b)=>a-b);shots.push(cv)}
+    const {jsPDF}=window.jspdf;
+    const title=summary?"Vutlan order summary":P.name;
+    const sub=summary?`${PJ.list.filter(p=>orderQty(p.id)>0).map(p=>p.name+(orderQty(p.id)>1?" ×"+orderQty(p.id):"")).join(", ")}`
+                     :`${model()} · ${P.note||""}`;
+    const stamp=`Vutlan Configurator · ${new Date().toLocaleString()}`;
+    const header=(pdf,W,M,CW,y)=>{pdf.setFont("helvetica","bold");pdf.setFontSize(16);pdf.text(title,M,y+6);
+      pdf.setFont("helvetica","normal");pdf.setFontSize(9.5);pdf.setTextColor(90);
+      const lines=pdf.splitTextToSize(sub,CW-70);pdf.text(lines,M,y+12);pdf.text(stamp,W-M,y+6,{align:"right"});pdf.setTextColor(0);
+      return 14+lines.length*4};
+    const jpg=c=>c.toDataURL("image/jpeg",0.86);
+    let pdf;
+    if(mode==="one"){                      // one long page: every panel stacked as on screen
+      const W=420,M=10;let CW=W-2*M;
+      const probe=new jsPDF({unit:"mm",format:"a4"});probe.setFontSize(9.5);
+      const hdr=14+probe.splitTextToSize(sub,CW-70).length*4;
+      let H=M+hdr+shots.reduce((a,cv)=>a+cv.height*CW/cv.width+5,0)+M;
+      const MAXH=5000;                        // PDF page size limit is about 5 m
+      if(H>MAXH){const f=(MAXH-2*M-hdr)/(H-2*M-hdr);CW*=f;H=MAXH}
+      pdf=new jsPDF({orientation:H>W?"portrait":"landscape",unit:"mm",format:[W,H]});
+      let y=M+header(pdf,W,M,W-2*M,M);const x=(W-CW)/2;
+      for(const cv of shots){const h=cv.height*CW/cv.width;pdf.addImage(jpg(cv),"JPEG",x,y,CW,h);y+=h+5}
+    } else {                               // A4 landscape pages, breaking between card rows
+      pdf=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+      const W=297,H=210,M=10,CW=W-2*M; let y=M; y+=header(pdf,W,M,CW,y);
+      for(const cv of shots){const k=CW/cv.width; let sy=0;
+        while(sy<cv.height){let room=H-M-y; if(room<25){pdf.addPage();y=M;room=H-2*M}
+          let sh=Math.min(cv.height-sy,Math.floor(room/k));
+          if(sy+sh<cv.height){const ok=(cv._br||[]).filter(b=>b>sy+40&&b<=sy+sh);if(ok.length)sh=ok[ok.length-1]-sy;else if(room<H-2*M-1){pdf.addPage();y=M;continue}}
+          const part=document.createElement("canvas");part.width=cv.width;part.height=sh;
+          part.getContext("2d").drawImage(cv,0,sy,cv.width,sh,0,0,cv.width,sh);
+          pdf.addImage(jpg(part),"JPEG",M,y,CW,sh*k);y+=sh*k+4;sy+=sh}}
+    }
+    const fname=safeName(summary?"Vutlan order summary":"Vutlan - "+P.name)+".pdf";
+    const r=await saveFile(fname,pdf.output("blob"));
+    msg.textContent=saveMsg(r,`${fname} (${mode==="one"?"one page":pdf.getNumberOfPages()+" A4 page"+(pdf.getNumberOfPages()>1?"s":"")})`);
+  }catch(e){msg.textContent=`${e.message||e}. Please try again.`}
+  finally{document.body.classList.remove("capturing");
+    PJ.cur=save.cur;useState(save.state);orderOpen=save.order;exportOpen=save.exp;render();
+    UNDO=save.undo;REDO=save.redo;lastJSON=save.last;restoring=false;renderProj();scrollTo(0,save.scroll);
+    btn.disabled=false;btn.textContent=label;const m2=document.getElementById("exMsg");if(m2&&msg.textContent)m2.textContent=msg.textContent}
+}
+function renderExport(){const el=document.getElementById("export");el.hidden=!exportOpen;if(!exportOpen)return;
+  if(!exportPick||(exportPick!=="__summary"&&!PJ.list.some(p=>p.id===exportPick)))exportPick=PJ.cur;
+  const nSel=PJ.list.filter(p=>orderQty(p.id)>0).length;
+  el.innerHTML=`<div class="ohd"><h2>Export</h2><span class="ostat">Choose one project or the order summary</span><button class="pbtn" type="button" data-a="exClose">Close</button></div>
+   <div class="ogrid"><div class="opick"><h3>What to export</h3>
+     ${PJ.list.map(p=>`<label class="oprow exr"><span><input type="radio" name="exPick" value="${p.id}" ${exportPick===p.id?"checked":""}> ${esc(p.name)}${p.id===PJ.cur?' <em class="cur">open</em>':""}</span></label>`).join("")}
+     <label class="oprow exr sum"><span><input type="radio" name="exPick" value="__summary" ${exportPick==="__summary"?"checked":""}> <b>Order summary</b> · ${nSel} project${nSel===1?"":"s"} ticked</span></label></div>
+    <div class="opick">${exportPick==="__summary"?`<h3>Projects in this summary</h3>
+      ${PJ.list.map(p=>{const q=orderQty(p.id);return `<div class="oprow${q?"":" off"}">
+        <label><input type="checkbox" data-oc="${p.id}" ${q?"checked":""}> <span>${esc(p.name)}</span></label>
+        <span class="stepper sm"><button type="button" data-a="oq-" data-p="${p.id}" ${q>1?"":"disabled"} aria-label="Fewer copies of ${esc(p.name)}">−</button><output>×${Math.max(q,1)}</output><button type="button" data-a="oq+" data-p="${p.id}" ${q?"":"disabled"} aria-label="More copies of ${esc(p.name)}">+</button></span></div>`}).join("")}
+      <p class="foot" style="margin:6px 0 14px">${nSel?`${nSel} project${nSel===1?"":"s"} ticked. Use ×2, ×3… when the same setup is installed several times.`:"Tick the projects you want to order, for example Project 1 and Project 2 but not their alternatives."}</p>`:""}
+     <h3>Contents</h3><p class="foot" style="margin:0 0 10px">${exportPick==="__summary"
+      ?"<b>PDF:</b> the Order summary panel exactly as shown on screen, on one page or on A4 pages. <b>Excel:</b> three sheets, <b>Order</b> (Vutlan items, quantities, prices, source projects), <b>Supplied by others</b>, and <b>Projects</b>. Only the ticked projects are included."
+      :"<b>PDF:</b> the project as shown on screen, on one long page or split over A4 pages: front panel with the CAN chain, back panel, capacity, parts list and connections. <b>Excel:</b> four sheets, <b>Project</b> (name, description, controller, capacity), <b>Parts list</b>, <b>Connections</b> (with every description) and <b>CAN bus</b> (order, names, power)."}</p>
+     <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><button class="pbtn primary" type="button" data-a="exPdf" data-m="one" ${exportPick==="__summary"&&!nSel?"disabled":""} title="All panels on one long page, exactly as on screen">⇩ PDF, one page</button><button class="pbtn" type="button" data-a="exPdf" data-m="a4" ${exportPick==="__summary"&&!nSel?"disabled":""} title="Same content split over A4 landscape pages for printing">⇩ PDF, A4 pages</button><button class="pbtn primary" type="button" data-a="exGo" ${exportPick==="__summary"&&!nSel?"disabled":""}>⇩ Excel (.xlsx)</button><button class="pbtn" type="button" data-a="exCopy" ${exportPick==="__summary"&&!nSel?"disabled":""}>Copy as table</button></div>
+     <p class="foot" id="exMsg" aria-live="polite"></p></div></div>`}
+function orderQty(id){PJ.order=PJ.order||{};return PJ.order[id]??0}
+function orderData(){const c=curP();if(c)c.state=snapshot();
+  const keep=snapshot(), agg={}, other={};
+  PJ.list.forEach(p=>{const q=orderQty(p.id);if(!q)return;useState(p.state);
+    computeBom().forEach(([n,k,price])=>{const T=isVutlan(n)?agg:other;T[n]=T[n]||{q:0,price,by:[]};T[n].q+=k*q;T[n].by.push(`${p.name}${q>1?` ×${q}`:""}: ${k*q}`)})});
+  useState(keep);
+  const rows=Object.entries(agg).sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}));
+  const orows=Object.entries(other).sort((a,b)=>a[0].localeCompare(b[0]));
+  return {rows,orows}}
+function renderOrder(){const el=document.getElementById("order");el.hidden=!orderOpen;if(!orderOpen)return;
+  const c=curP();if(c)c.state=snapshot();
+  const {rows,orows}=orderData();
+  const nSel=PJ.list.filter(p=>orderQty(p.id)>0).length, units=rows.reduce((a,[,r])=>a+r.q,0);
+  const priced=rows.filter(([,r])=>r.price).reduce((a,[,r])=>a+r.price*r.q,0), unpriced=rows.filter(([,r])=>!r.price).length;
+  el.innerHTML=`<div class="ohd"><h2>Order summary</h2><span class="ostat">${nSel} of ${PJ.list.length} projects · ${rows.length} Vutlan items · ${units} pieces</span>
+      <button class="pbtn" type="button" data-a="oCopy">Copy order list</button><button class="pbtn" type="button" data-a="pOrder">Close</button></div>
+    <div class="ogrid">
+      <div class="opick"><h3>Projects in this order</h3>${PJ.list.map(p=>{const q=orderQty(p.id);return `<div class="oprow${q?"":" off"}">
+        <label><input type="checkbox" data-oc="${p.id}" ${q?"checked":""}> <span>${esc(p.name)}</span></label>
+        <span class="stepper sm"><button type="button" data-a="oq-" data-p="${p.id}" ${q>1?"":"disabled"} aria-label="Fewer copies of ${esc(p.name)}">−</button><output>×${Math.max(q,1)}</output><button type="button" data-a="oq+" data-p="${p.id}" ${q?"":"disabled"} aria-label="More copies of ${esc(p.name)}">+</button></span></div>`}).join("")}
+        <p class="foot">Use ×2, ×3… when the same setup is installed several times.</p></div>
+      <div class="otab" style="min-width:0"><h3>To order from Vutlan</h3><div class="tw"><table><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">MSRP €</th><th>From projects</th></tr>
+        ${rows.length?rows.map(([n,r])=>`<tr><td>${esc(n)}</td><td class="n"><b>${r.q}</b></td><td class="n">${r.price?(r.price*r.q).toFixed(2):"—"}</td><td class="by">${r.by.map(esc).join("<br>")}</td></tr>`).join(""):`<tr><td colspan="4" style="color:var(--muted)">Tick at least one project.</td></tr>`}</table></div>
+        <p class="foot">${priced?`Priced items: €${priced.toFixed(2)} MSRP incl. tax. `:""}${unpriced?`${unpriced} item${unpriced>1?"s":""} without a published price.`:""}</p>
+        ${orows.length?`<h3 style="margin-top:12px">Supplied by others (not Vutlan products)</h3><table>${orows.map(([n,r])=>`<tr><td>${esc(n)}</td><td class="n">${r.q}</td></tr>`).join("")}</table>`:""}
+      </div></div>`;
+  el._text=["Item\tQty",...rows.map(([n,r])=>`${n}\t${r.q}`)].join("\n");
+}
+function renderProj(){
+  const c=curP(), el=document.getElementById("pctl");
+  if(pmode==="rename") el.innerHTML=`<input id="pname" type="text" value="${esc(c.name)}" maxlength="80" aria-label="Project name"><button class="pbtn primary" type="button" data-a="pRenameOk">Save name</button><button class="pbtn" type="button" data-a="pCancel">Cancel</button>`;
+  else if(pmode==="delete") el.innerHTML=`<span class="q">Delete “${esc(c.name)}”? This cannot be undone.</span><button class="pbtn danger" type="button" data-a="pDeleteOk">Delete project</button><button class="pbtn" type="button" data-a="pCancel">Cancel</button>`;
+  else el.innerHTML=`<select id="preset" aria-label="Project">${PJ.list.map(p=>`<option value="${p.id}"${p.id===c.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select>
+    <button class="pbtn primary" type="button" data-a="pNew">+ New</button><button class="pbtn" type="button" data-a="pDup">Duplicate</button>
+    <button class="pbtn" type="button" data-a="pRename">Rename</button><button class="pbtn" type="button" data-a="pDelete" ${PJ.list.length<2?'disabled title="Keep at least one project"':""}>Delete</button>
+    <span style="width:1px;align-self:stretch;background:var(--line);margin:0 2px"></span>
+    <button class="pbtn" type="button" data-a="pUndo" ${UNDO.length?"":"disabled"} title="Undo (Ctrl+Z)">↶ Undo</button><button class="pbtn" type="button" data-a="pRedo" ${REDO.length?"":"disabled"} title="Redo (Ctrl+Y)">↷ Redo</button>
+    <span style="width:1px;align-self:stretch;background:var(--line);margin:0 2px"></span>
+    <button class="pbtn ${orderOpen?"primary":""}" type="button" data-a="pOrder" aria-expanded="${orderOpen}">Order summary</button><button class="pbtn ${exportOpen?"primary":""}" type="button" data-a="pExport" aria-expanded="${exportOpen}">⇩ Export</button>`;
+  document.getElementById("presetNote").innerHTML=pmode?"":`<span class="pdw"><input class="pdesc" id="pdesc" type="text" maxlength="200" value="${esc(c.note||"")}" placeholder="Add a description for this project" aria-label="Project description" title="Click to edit the description"></span>`;
+  if(pmode==="rename"){const i=document.getElementById("pname");i.focus();i.select()}
+}
+
+/* ===== Counting ===== */
+const AN=byId("analog"), CANT=byId("can");
+const CHAIN_MAX=10;   // VT530 / VT560: max 10 sensors per chain (confirmed)
+const base=v=>v?String(v).split(/[*@]/)[0]:v, qty=v=>+(String(v).split("*")[1]||1), wlcLen=v=>+(String(v).split("@")[1]||0);
+/* WLC leak detection cable: segments join up to 225 m */
+const WLC=[3,6,10,15,25], WLC_MAX=225;
+const WLC_BEST=(()=>{const N=WLC_MAX+25,best=Array(N+1).fill(null);best[0]=[];
+  for(let t=1;t<=N;t++)for(const L of WLC){if(t>=L&&best[t-L]){const c=[...best[t-L],L];if(!best[t]||c.length<best[t].length)best[t]=c}}return best})();
+function wlcCombo(len){if(len<=0)return [];for(let t=len;t<WLC_BEST.length;t++){if(t>WLC_MAX)break;if(WLC_BEST[t])return [...WLC_BEST[t]].sort((a,b)=>a-b)}return null}
+const getA=path=>{if(path.startsWith("c:")){const [,ci,pi]=path.split(":");return S.can[+ci].ports[+pi]}return S.p[path]};
+const setA=(path,v)=>{if(path.startsWith("c:")){const [,ci,pi]=path.split(":");S.can[+ci].ports[+pi]=v}else S.p[path]=v};
+function aChip(v,path,cls=""){const o=AN[base(v)],n=qty(v),ds=getD(path),hd=ds?" hasd":"",dt=ds?` · ${esc(ds)}`:"";
+  if(o.cable){const L=wlcLen(v);return `<button type="button" class="chip cbtn ${cls}${hd}" data-a="wlc" data-p="${path}" title="${o.name} with ${L} m WLC cable${dt}. Click to edit." style="color:var(--analog)"><b>${o.short}</b><i class="badge">${L}m</i></button>`}
+  return o.chain?`<button type="button" class="chip cbtn ${cls}${hd}" data-a="chain" data-p="${path}" title="${o.name}: chain of ${n}${dt}. Click to edit." style="color:var(--analog)"><b>${o.short}</b><i class="badge">×${n}</i></button>`
+               :`<button type="button" class="chip cbtn ${cls}${hd}" data-a="info" data-p="${path}" title="${o.name}${dt}. Click to describe." style="color:var(--analog)"><b>${o.short}</b></button>`}
+/* Descriptions: what each connected element monitors or where it is mounted */
+function getD(path){if(path.startsWith("w:"))return (S.lw[+path.slice(2)]||{}).desc||"";if(path.startsWith("m:"))return (S.mb[+path.slice(2)]||{}).desc||"";if(path.startsWith("i:")){const[,ci,k]=path.split(":");return ((S.can[+ci]||{}).idesc||[])[+k]||""}
+  if(path.startsWith("c:")){const[,ci,pi]=path.split(":");return ((S.can[+ci]||{}).desc||[])[+pi]||""}return (S.desc||{})[path]||""}
+function setD(path,v){v=(v||"").trim();if(path.startsWith("w:")){const d=S.lw[+path.slice(2)];if(d)d.desc=v;return}if(path.startsWith("m:")){const d=S.mb[+path.slice(2)];if(d)d.desc=v;return}if(path.startsWith("i:")){const[,ci,k]=path.split(":");const d=S.can[+ci];if(d){d.idesc=d.idesc||[];d.idesc[+k]=v}return}
+  if(path.startsWith("c:")){const[,ci,pi]=path.split(":");const d=S.can[+ci];if(!d)return;d.desc=d.desc||Array(8).fill("");d.desc[+pi]=v}
+  else{S.desc=S.desc||{};if(v)S.desc[path]=v;else delete S.desc[path]}}
+const descField=path=>`<label class="dfield"><span>Description</span><input id="descIn" type="text" maxlength="80" value="${esc(getD(path))}" data-p="${path}" placeholder="e.g. Rack A04, front door top" autocomplete="off"></label>`;
+function tally(){
+  let s=UNIT.onboard, analog=0, dry=0, outs=0;
+  const addA=v=>{if(v){analog++;s+=AN[base(v)].s}};
+  Object.entries(S.p).forEach(([k,v])=>{if(!v)return;
+    if(k[0]==="A"&&k[1]!=="C") addA(v); else if(/^D\d+$/.test(k)){dry++;s++} else if(/^(R1|R2|E1|E2|O\d+)$/.test(k)){outs++;s++}});
+  S.can.forEach(d=>{if(is408(d.t))d.ports.forEach(addA);else if(d.t==="VT440"){d.n=(d.inp||[]).filter(Boolean).length;dry+=d.n;s+=d.n}else s+=CANT[d.t].s});
+  const mb=S.p.EXT==="485m"?mbParams():0, rd=S.p.EXT==="485r"?S.readers:0, lw=lwSum(); s+=mb+rd+lw;
+  return {s,analog,dry,outs,mb,rd,lw,nlw:UNIT.lora?(S.lw||[]).length:0,can:S.can.length,n408:S.can.filter(d=>is408(d.t)).length,n408d:S.can.filter(d=>d.t==="VT408D").length,n440:S.can.filter(d=>d.t==="VT440").length,n32:S.can.filter(d=>d.t==="VT440"&&d.b32).length,cap440:S.can.reduce((a,d)=>a+(d.t==="VT440"?(d.b32?64:32):0),0),psu:CANP.filter(c=>busIdx(c.bus).length>UNIT.canPsuAbove).length,canB:CANP.map(c=>busIdx(c.bus).length)};
+}
+const free=()=>Math.min(UNIT.maxSensors-tally().s, UNIT.elements-elements());
+const counts=k=>["analog","dry","relay","out12","iso"].includes(k);
+
+/* ===== Panel rendering ===== */
+function line(x1,y1,x2,y2,c,dash){return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(${c})" stroke-width="2.5" ${dash?'stroke-dasharray="5 5" opacity=".45"':""}/>`+(dash?"":`<circle cx="${x2}" cy="${y2}" r="5" fill="var(${c})"/>`)}
+function callout(p,imgTop,ih){
+  if(PWR.includes(p.id)&&!S.p[p.id])return {html:"",ln:"",hl:""};   // power inputs follow the Model menu, no +/− on them
+  const v=S.p[p.id], c=COLOR[p.kind], opts=OPT[p.kind], ob=v?opts.find(o=>o.id===base(v)):null, lab=ob?(ob.short||ob.id):"";
+  const top=p.side==="top";
+  let cx=p.ax??p.x;
+  const tower=p.kind==="out12"&&v==="VT109";
+  if(tower) cx=(PORT.E1.x+PORT.E2.x)/2;
+  const anchorY= top? (p.row===0? TL-84 : TL-10) : imgTop+ih+12+(p.row===1?66:0);
+  const portY=imgTop+p.y+(top?-14:14);
+  const blocked=counts(p.kind)&&free()<1;
+  let inner="";
+  const nm=tower?`<span class="cap">E1 + E2</span>`:(!v&&p.addLabel)?`<span class="cap">${p.addLabel}</span>`:p.fixedLabel?`<span class="cap">${p.fixedLabel}</span>`:(p.label?`<span class="cap">${p.label}</span>`:`<span class="cap">${p.id}</span>`);
+  if(v){
+    const title=ob?ob.name:"";
+    inner=(p.kind==="analog"?aChip(v,p.id):`<button type="button" class="chip cbtn${getD(p.id)?" hasd":""}" data-a="${PWR.includes(p.id)&&BASE.powerMenu?"pwrMenu":p.kind==="dry"?"dryEdit":["relay","out12","iso"].includes(p.kind)?"outEdit":"info"}" data-p="${p.id}" style="color:var(${c})" title="${p.kind==="dry"?esc(dryName(v,(S.cust||{})[p.id])):(p.kind==="iso"||v==="CUS")?esc(devName(p.id)):title}${getD(p.id)?" · "+esc(getD(p.id)):""}. ${PWR.includes(p.id)&&BASE.powerMenu?"Click to change the power version.":"Click to describe."}"><b>${lab}</b></button>`)+(PWR.includes(p.id)||p.fixed?"":`<button class="rm" type="button" data-a="rm" data-p="${p.id}" ${(p.kind==="p12"||p.kind==="p48")&&["P12","R12","PDC"].filter(k=>S.p[k]).length<2?'disabled title="The unit needs at least one power input"':""} aria-label="Remove from ${p.id}">−</button>`);
+    if(p.kind==="lora"&&v){inner+=`<button class="pbtn" type="button" data-a="lwOpen" style="font-size:12px;padding:4px 8px;margin-top:2px" title="List the LoRaWAN wireless sensors">📶 ${S.lw.length} LoRaWAN sensor${S.lw.length===1?"":"s"}</button>`}
+    if(p.kind==="modem"&&v){inner+=`<div class="stp"><button type="button" data-a="ant-" ${S.ant?"":"disabled"} aria-label="Remove VT6604 antenna">−</button><span class="${S.ant?"antchip":""}" style="min-width:104px;text-align:center;color:${S.ant?"var(--ink)":"var(--muted)"}" title="VT6604 4G SMA antenna, 3 m cable: stronger signal, can be led outside the room">${S.ant?"VT6604 antenna":"+ antenna"}</span><button type="button" data-a="ant+" ${S.ant?"disabled":""} aria-label="Add VT6604 antenna">+</button></div>`}
+    if(p.kind==="usb"&&v==="HUB"){const row=(k,l)=>`<div class="stp"><button type="button" data-a="hub-" data-p="${k}" ${S.hub[k]?"":"disabled"} aria-label="Remove ${l}">−</button><span style="min-width:62px;text-align:center;color:${S.hub[k]?"var(--ink)":"var(--muted)"}">${l}</span><button type="button" data-a="hub+" data-p="${k}" ${S.hub[k]?"disabled":""} aria-label="Add ${l}">+</button></div>`;
+    inner+=row("cam","Camera")+row("flash","Flash");}
+  if(p.kind==="ext"&&v==="485r"){const r=S.readers,ext=Math.max(0,r-UNIT.readersPowered);
+      inner+=`<div class="stp"><button type="button" data-a="rd-" ${r?"":"disabled"} aria-label="Fewer readers">−</button>${r}/${UNIT.readersMax} readers<button type="button" data-a="rd+" ${r>=UNIT.readersMax||free()<1?"disabled":""} aria-label="More readers">+</button></div>`
+        +`<div class="stp" style="gap:6px">${Array.from({length:UNIT.readersMax},(_,k)=>`<span title="Reader ${k+1}: ${k<UNIT.readersPowered?"powered by unit":"external power"}" style="width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:11px;border:2px ${k<r?"solid":"dashed"} var(${k<r?(k<UNIT.readersPowered?"--mod":"--pwr"):"--line"});color:var(--ink)">${k+1}</span>`).join("")}</div>`
+        +(ext?`<span class="cap" style="color:var(--pwr)">${ext>1?"Readers 3–4 need":"Reader 3 needs"} external PSU</span>`:"");}
+    if(p.kind==="ext"&&v==="485m") inner+=`<button class="pbtn" type="button" data-a="mbOpen" style="font-size:12px;padding:4px 8px" title="List the Modbus RTU meters and their parameters">☰ ${S.mb.length}/${UNIT.modbusMax} meters · ${mbParams()} param.</button>`;
+  } else {const pw=PWR.includes(p.id)?powerWhy(p.id,true):"";inner=`<button class="add" type="button" data-a="add" data-p="${p.id}" ${pw?`disabled title="${pw}"`:blocked?`disabled title="${UNIT.maxSensors}-sensor limit reached"`:""} aria-label="Connect to ${p.id}">+</button>`;}
+  if(tower&&p.id==="E2"){return {html:"",ln:line(cx,imgTop+ih+12,p.x,portY,c,false),hl:`<div class="hl" style="left:${p.box[0]}px;top:${imgTop+p.box[1]}px;width:${p.box[2]}px;height:${p.box[3]}px;border-color:var(${c})"></div>`}}
+  const html= top? `<div class="co top${p.sm?" sm":""}" style="left:${cx}px;top:${anchorY}px">${nm}${inner}</div>`
+                 : `<div class="co bot${p.sm?" sm":""}" style="left:${cx}px;top:${anchorY}px">${inner}${nm}</div>`;
+  const ln= line(cx, top?anchorY:anchorY, p.x, portY, v?c:"--muted", !v);
+  let hl= v? `<div class="hl" style="left:${p.box[0]}px;top:${imgTop+p.box[1]}px;width:${p.box[2]}px;height:${p.box[3]}px;border-color:var(${c})"></div>`:"";
+  if(p.kind==="modem"&&v&&S.ant&&p.antBox){const A=p.antBox;hl+=`<div class="hl" title="VT6604 antenna on the SMA connector" style="left:${A[0]}px;top:${imgTop+A[1]}px;width:${A[2]}px;height:${A[3]}px;border-color:var(--mod)"></div>`}
+  return {html,ln,hl};
+}
+function renderPanel(el,P,img,extra){
+  const H=TL+P.h+BL; let html="",lns="",hls="";
+  P.ports.forEach(p=>{const r=callout(p,TL,P.h);html+=r.html;lns+=r.ln;hls+=r.hl});
+  const e=extra?extra():{html:"",ln:"",hl:""}; html+=e.html;lns+=e.ln;hls+=e.hl;
+  el.style.height=H+"px";el.style.width=BASE.pw+"px";
+  el.innerHTML=`<img src="${img}" alt="" style="top:${TL}px;width:${BASE.pw}px" width="${BASE.pw}" height="${P.h}">${hls}<svg width="${BASE.pw}" height="${H}">${lns}</svg>${html}`;
+}
+function frontExtra(){
+  const t=tally(), y=TL+FRONT.h+12;let html="",ln="",hl="";
+  CANP.forEach(c=>{const k=busIdx(c.bus).length, full=k>=UNIT.canMax, cx=c.ax??c.x;
+    const top=c.side==="top", cy=top?TL-10:y;
+    html+=`<div class="co ${top?"top":"bot"}" style="left:${cx}px;top:${cy}px"><div class="pair">
+     <button class="rm" type="button" data-a="canPop" data-b="${c.bus}" ${k?"":"disabled"} aria-label="Remove last device on ${c.label}">−</button>
+     <button class="add" type="button" data-a="canAdd" data-b="${c.bus}" ${full?`disabled title="CAN bus full (${UNIT.canMax})"`:""} aria-label="Add CAN device on ${c.label}">+</button></div><span class="cap">${c.label} ${k}/${UNIT.canMax}</span></div>`;
+    ln+=line(cx,cy,c.x,TL+c.y+(top?-16:16),k?"--can":"--muted",!k);
+    if(k)hl+=`<div class="hl" style="left:${c.box[0]}px;top:${TL+c.box[1]}px;width:${c.box[2]}px;height:${c.box[3]}px;border-color:var(--can)"></div>`});
+  // LEDs: activity always, CAN when bus used, E/R when outputs used
+  BASE.leds.forEach(([x,yy,k,c])=>{const on=k==="on"?1:k==="can"||k==="can0"?t.canB[0]:k==="can1"?t.canB[1]:S.p[k];if(on)hl+=`<div class="led ${c||""}" style="left:${x}px;top:${TL+yy}px"></div>`});
+  return {html,ln,hl};
+}
+
+/* ===== VT408 front panel (render 1368×307, drawn 460 px wide) ===== */
+const V4={w:460,src:1368,h:307,px:[270,393,515,637,762,885,1008,1132],top:55,bottom:175,pw:104,led:[157,201],lane:104};
+function v408(d,ci,blocked){const k=V4.w/V4.src, ih=Math.round(V4.h*k);
+  let co="",ln="",hl="";
+  d.ports.forEach((v,pi)=>{const x=Math.round(V4.px[pi]*k), row=pi%2, bottomY=row?V4.lane-6:V4.lane-56, portTop=V4.lane+Math.round(V4.top*k);
+    const inner=v?`${aChip(v,"c:"+ci+":"+pi)}<button class="rm" type="button" data-a="rmc" data-p="${ci}:${pi}" aria-label="Unplug port A${pi+1}">−</button>`
+                 :`<button class="add" type="button" data-a="addc" data-p="${ci}:${pi}" ${blocked?"disabled":""} aria-label="Connect sensor to port A${pi+1}">+</button>`;
+    co+=`<div class="v4co" style="left:${x}px;top:${bottomY}px">${inner}</div>`;
+    ln+=`<i class="v4ln${v?" on":""}" style="left:${x-1}px;top:${bottomY}px;height:${portTop-bottomY}px"></i>`;
+    if(v) hl+=`<i class="v4hl" style="left:${Math.round((V4.px[pi]-V4.pw/2)*k)}px;top:${V4.lane+Math.round(V4.top*k)}px;width:${Math.round(V4.pw*k)}px;height:${Math.round((V4.bottom-V4.top)*k)}px"></i>`;
+  });
+  return `<div class="v4wrap"><div class="v4" style="width:${V4.w}px;height:${V4.lane+ih}px">
+    <img src="images/vt408.webp" alt="VT408 front panel" width="${V4.w}" height="${ih}" style="top:${V4.lane}px">
+    ${hl}${ln}<i class="v4led" style="left:${Math.round(V4.led[0]*k)}px;top:${V4.lane+Math.round(V4.led[1]*k)}px"></i>${co}</div></div>${v408back(ci)}`}
+/* VT408 back panel (render 1368×309): CAN 1 = bus in, CAN 2 = bus out to the next device, DC 12V power, TR terminator switch */
+function v408back(ci){const W=460,k=W/1368,h=Math.round(309*k),box=(b,c,t)=>`<i class="v4hl" title="${t}" style="border-color:var(${c});left:${Math.round(b[0]*k)}px;top:${Math.round(b[1]*k)}px;width:${Math.round(b[2]*k)}px;height:${Math.round(b[3]*k)}px"></i>`;
+  const last=isLast(ci);
+  return `<div class="v4wrap"><div class="v4" style="width:${W}px;height:${h}px"><img src="images/vt408-back.webp" alt="VT408 back panel" width="${W}" height="${h}" style="top:0">
+    ${box([243,82,140,128],"--can","CAN 1: bus in")}${last?"":box([388,82,140,128],"--can","CAN 2: bus out to the next device")}</div></div>`}
+
+/* ===== Dry contacts: one list for the unit's inputs and every VT440 ===== */
+const DRYO=byId("dry");
+function dryGet(key){if(key.startsWith("i:")){const[,ci,k]=key.split(":");const d=S.can[+ci];return {v:d.inp[+k],c:d.cust[+k]||""}}return {v:S.p[key]||null,c:(S.cust||{})[key]||""}}
+function drySet(key,v){if(key.startsWith("i:")){const[,ci,k]=key.split(":");const d=S.can[+ci];d.inp[+k]=v||null;if(v!=="CUS")d.cust[+k]="";if(!v)d.idesc[+k]="";return}
+  if(v)S.p[key]=v;else{delete S.p[key];setD(key,"")}if(v!=="CUS")delete S.cust[key]}
+function dryCust(key,t){t=(t||"").trim();if(key.startsWith("i:")){const[,ci,k]=key.split(":");S.can[+ci].cust[+k]=t}else S.cust[key]=t}
+const dryName=(v,c)=>v==="CUS"?(c||"Your hardware"):(DRYO[v]||{}).name||v;
+let dryOpen=false, dryHot=null;
+function dryRow(key,label){const {v,c}=dryGet(key);
+  return `<div class="drow${v?" on":""}${key===dryHot?" hot":""}" data-key="${key}"><span class="dn">${label}</span>
+    <div class="dpick"><select class="dsel" data-k="${key}" aria-label="Hardware on dry input ${label}"><option value="">— not used —</option>${OPT.dry.map(o=>`<option value="${o.id}"${o.id===v?" selected":""}>${o.name}</option>`).join("")}</select>
+    ${v==="CUS"?`<input class="dcus" data-k="${key}" type="text" maxlength="60" value="${esc(c)}" placeholder="Type the hardware, e.g. Water pump alarm" aria-label="Name of your hardware on input ${label}">`:""}</div>
+    <input class="ddesc" data-k="${key}" type="text" maxlength="80" value="${esc(getD(key))}" ${v?"":"disabled"} placeholder="${v?"Location, what it watches":""}" aria-label="Description of dry input ${label}"></div>`}
+function accHead(a,title,stat,open,summary){return `<button class="acc" type="button" data-a="${a}" aria-expanded="${open}" title="${open?"Collapse":"Expand"}"><span class="chev">›</span><h2>${title}</h2><span class="ostat">${stat}</span>${open?"":`<span class="sumtxt">${esc(summary||"")}</span>`}</button>`}
+function sumOf(list){const c={};list.forEach(n=>{if(n)c[n]=(c[n]||0)+1});return Object.entries(c).map(([n,k])=>k>1?`${k}× ${n}`:n).join(" · ")}
+function renderDry(){const el=document.getElementById("dry");el.hidden=!UNIT.dry;if(!UNIT.dry)return;el.classList.toggle("closed",!dryOpen);
+  const ae=document.activeElement, keep=ae&&ae.closest&&ae.closest("#dry")&&ae.dataset.k?[ae.className,ae.dataset.k]:null;
+  const t=tally(), nU=Array.from({length:UNIT.dry},(_,i)=>"D"+(i+1)).filter(k=>S.p[k]).length;
+  const names=[...Array.from({length:UNIT.dry},(_,i)=>"D"+(i+1)),...S.can.flatMap((d,ci)=>d.t==="VT440"?d.inp.map((v,k)=>`i:${ci}:${k}`):[])].map(k=>{const g=dryGet(k);return g.v?dryName(g.v,g.c):null});
+  let h=accHead("accDry","Dry contact inputs",`${t.dry} of ${UNIT.dry+t.cap440} used`,dryOpen,sumOf(names)||"Nothing connected yet");
+  if(!dryOpen){el.innerHTML=h;return}
+  h+=`
+    <p class="foot" style="margin:-4px 0 0">Choose the hardware on each input, or pick <b>Name your hardware…</b> and type it. Add where it is mounted in the second field. Changes show on the panels and in the parts list.</p>
+    <div class="drygrp" data-grp="unit"><h3>${esc(model())} · inputs on the unit <small>${nU} of ${UNIT.dry} used</small></h3>
+    <div class="drows">${Array.from({length:UNIT.dry},(_,i)=>dryRow("D"+(i+1),i+1)).join("")}</div></div>`;
+  S.can.forEach((d,ci)=>{if(d.t!=="VT440")return;const max=d.b32?64:32;
+    h+=`<div class="drygrp" data-grp="i:${ci}"><h3>${canName(ci)} · VT440${d.label?" · "+esc(d.label):""} <small>${d.n} of ${max} used</small>
+      <span class="stp"><button type="button" data-a="b32-" data-p="${ci}" ${d.b32?"":"disabled"} aria-label="Remove VT32 board">−</button><span style="min-width:150px;text-align:center;color:${d.b32?"var(--ink)":"var(--muted)"}">${d.b32?"VT32 board · 64 inputs":"+ VT32 board (64 inputs)"}</span><button type="button" data-a="b32+" data-p="${ci}" ${d.b32?"disabled":""} aria-label="Add VT32 board">+</button></span></h3>
+      <div class="drows">${Array.from({length:max},(_,k)=>dryRow(`i:${ci}:${k}`,k+1)).join("")}</div></div>`});
+  if(!S.can.some(d=>d.t==="VT440")) h+=`<p class="foot">Need more inputs? Add a VT440 on the CAN bus for 32 more (64 with the VT32 board).</p>`;
+  el.innerHTML=h;
+  if(keep){const n=el.querySelector(`.${keep[0].split(" ")[0]}[data-k="${keep[1]}"]`);if(n)n.focus()}}
+function openDry(key){dryOpen=true;dryHot=key||null;render();
+  const el=document.getElementById("dry"), row=key&&(el.querySelector(`.drow[data-key="${key}"]`)||el.querySelector(`.drygrp[data-grp="${key}"]`));
+  (row||el).scrollIntoView({behavior:"smooth",block:row?"center":"start"});
+  const f=row&&row.querySelector(".dcus")||row&&row.querySelector("select");if(f)setTimeout(()=>f.focus({preventScroll:true}),350)}
+document.addEventListener("change",e=>{const t=e.target,k=t.dataset&&t.dataset.k;if(!k||!t.closest("#dry"))return;
+  if(t.classList.contains("dsel")){const prev=dryGet(k).v;
+    if(t.value&&!prev&&free()<1){t.value="";alert(`The ${UNIT.maxSensors}-sensor limit is reached.`);return}
+    drySet(k,t.value);dryHot=k;render();if(t.value==="CUS"){const c=document.querySelector(`#dry .dcus[data-k="${k}"]`);if(c)c.focus()}}
+  else if(t.classList.contains("dcus")){dryCust(k,t.value);render({keepDry:true})}
+  else if(t.classList.contains("ddesc")){setD(k,t.value);render({keepDry:true})}});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.closest&&t.closest("#dry")&&t.tagName==="INPUT"&&e.key==="Enter")t.blur()});
+
+/* ===== Outputs panel: NC/NO/COM relays, 12 V outputs, isolated dry contact outputs ===== */
+const OUTG=[{kind:"relay",title:"Relays · NC / NO / COM, 240 V",ids:["R1","R2"],lab:k=>"R"+k.slice(1)},
+  {kind:"out12",title:"12 V outputs · 0.25 A",ids:["E1","E2"],lab:k=>k},
+  {kind:"iso",title:"Isolated dry contact outputs · 24 V DC / 15 mA signal",ids:Array.from({length:8},(_,i)=>"O"+(i+1)),lab:k=>k.slice(1)}];
+let outOpen=false, outHot=null;
+function outRow(key,label,kind){const v=S.p[key]||"",c=(S.cust||{})[key]||"",tw=v==="VT109";
+  return `<div class="drow${v?" on":""}${key===outHot?" hot":""}" data-key="${key}"><span class="dn">${label}</span>
+    <div class="dpick"><select class="osel" data-k="${key}" aria-label="Hardware on ${esc(PLABEL[key]||key)}"><option value="">— not used —</option>${allowedOpts(kind).map(o=>`<option value="${o.id}"${o.id===v?" selected":""}>${o.name}${o.note&&o.id!=="CUS"?" · "+o.note:""}</option>`).join("")}</select>
+    ${v==="CUS"?`<input class="ocus" data-k="${key}" type="text" maxlength="60" value="${esc(c)}" placeholder="Type the hardware, e.g. Water pump starter" aria-label="Name of your hardware on ${esc(key)}">`:""}</div>
+    <input class="odesc" data-k="${key}" type="text" maxlength="80" value="${esc(getD(key))}" ${v?"":"disabled"} placeholder="${v?(tw?"Uses E1 + E2":"Location, what it switches"):""}" aria-label="Description of ${esc(key)}"></div>`}
+let outOpen2={relay:false,out12:false,iso:false};
+function renderOut(){OUTG.forEach(g=>{const el=document.getElementById("outp-"+g.kind), ids=g.ids.filter(k=>PORT[k]);
+  el.hidden=!ids.length;if(!ids.length)return;const open=outOpen2[g.kind];el.classList.toggle("closed",!open);
+  const ae=document.activeElement, keep=ae&&ae.closest&&ae.closest("#outp-"+g.kind)&&ae.dataset.k?[ae.className,ae.dataset.k]:null;
+  const n=ids.filter(k=>S.p[k]).length, title=g.kind==="relay"?"Relays · NC / NO / COM":g.kind==="out12"?"12 V outputs":"Dry contact outputs";
+  const names=ids.map(k=>S.p[k]?devName(k)||null:null); if(g.kind==="out12"&&S.p.E1==="VT109")names.splice(1,1);
+  let h=accHead("acc_"+g.kind,title,`${n} of ${ids.length} used`,open,sumOf(names)||"Nothing connected yet");
+  if(open){h+=`<p class="foot" style="margin:-4px 0 0">${g.kind==="relay"?"240 V relays with NC / NO / COM contacts.":g.kind==="out12"?"12 V outputs, 0.25 A each. The VT109 light tower uses E1 and E2 together.":"Isolated signal outputs, 24 V DC / 15 mA."} Choose what each output switches or signals, or pick <b>Name your hardware…</b> and type it. Add where it is installed in the second field.</p>
+      <div class="drygrp"><div class="drows">${ids.map(k=>outRow(k,g.lab(k),g.kind)).join("")}</div></div>`}
+  el.innerHTML=h;
+  if(keep){const x=el.querySelector(`.${keep[0].split(" ")[0]}[data-k="${keep[1]}"]`);if(x)x.focus()}})}
+function openOut(key){const kind=key&&PORT[key]?PORT[key].kind:"relay";outOpen2[kind]=true;outHot=key||null;render();
+  const el=document.getElementById("outp-"+kind), row=key&&el.querySelector(`.drow[data-key="${key}"]`);
+  (row||el).scrollIntoView({behavior:"smooth",block:row?"center":"start"});
+  const f=row&&(row.querySelector(".ocus")||row.querySelector("select"));if(f)setTimeout(()=>f.focus({preventScroll:true}),350)}
+function setOut(k,v){const tw=x=>S.p[x]==="VT109";
+  if(tw(k)||(k==="E1"||k==="E2")&&v==="VT109"){delete S.p.E1;delete S.p.E2;["E1","E2"].forEach(x=>{if(S.cust)delete S.cust[x]})}
+  if(v==="VT109"){S.p.E1="VT109";S.p.E2="VT109";return}
+  if(v)S.p[k]=v;else{delete S.p[k];setD(k,"")}
+  if(v!=="CUS"&&S.cust)delete S.cust[k]}
+document.addEventListener("change",e=>{const t=e.target,k=t.dataset&&t.dataset.k;if(!k||!t.closest(".outp"))return;
+  if(t.classList.contains("osel")){const prev=S.p[k],v=t.value;
+    if(v==="VT109"){const other=k==="E1"?"E2":"E1";if(S.p[other]&&S.p[other]!=="VT109"){t.value=prev||"";alert("The VT109 light tower uses both E1 and E2. Free the other 12 V output first.");return}
+      if(!prev&&free()<2){t.value="";alert(`The ${UNIT.maxSensors}-sensor limit is reached.`);return}}
+    else if(v&&!prev&&free()<1){t.value="";alert(`The ${UNIT.maxSensors}-sensor limit is reached.`);return}
+    setOut(k,v);outHot=k;render();if(v==="CUS"){const c=document.querySelector(`.outp .ocus[data-k="${k}"]`);if(c)c.focus()}}
+  else if(t.classList.contains("ocus")){S.cust=S.cust||{};S.cust[k]=t.value.trim();render({keepDry:true})}
+  else if(t.classList.contains("odesc")){setD(k,t.value);render({keepDry:true})}});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.closest&&t.closest(".outp")&&t.tagName==="INPUT"&&e.key==="Enter")t.blur()});
+
+/* ===== Modbus RTU panel: up to 32 meters on the VT485m, each with its own list of parameters ===== */
+let mbOpen=false;
+function renderMb(){const el=document.getElementById("mbp"), has=[...FRONT.ports,...BACK.ports].some(p=>p.kind==="ext"&&allowedOpts("ext").some(o=>o.id==="485m"));
+  el.hidden=!has;if(!has)return;el.classList.toggle("closed",!mbOpen);
+  const ae=document.activeElement, keep=ae&&ae.closest&&ae.closest("#mbp")&&ae.dataset.f?[ae.dataset.f,ae.dataset.i,ae.dataset.j]:null;
+  const on=S.p.EXT==="485m", np=mbParams(), nw=S.mb.reduce((a,d)=>a+d.params.filter(q=>q.w).length,0);
+  let h=accHead("accMb","Modbus RTU meters",on?`${S.mb.length} of ${UNIT.modbusMax} devices · ${np} parameters`:"needs VT485m",mbOpen,on?(S.mb.map(d=>d.name||MBTI[d.type].name).join(" · ")||"No devices yet"):"Fit the VT485m Modbus RTU extension to connect meters");
+  if(!mbOpen){el.innerHTML=h;return}
+  if(!on){h+=`<p class="foot" style="margin:0">Modbus RTU meters connect to the <b>VT485m</b> extension in the extension slot (RS-485, up to ${UNIT.modbusMax} devices).${S.p.EXT?` The slot now holds the ${esc((byId("ext")[S.p.EXT]||{}).name||S.p.EXT)}.`:""}</p>
+    ${S.p.EXT?"":`<div><button class="pbtn primary" type="button" data-a="fitMb">+ Fit VT485m Modbus RTU extension</button></div>`}${S.mb.length?`<p class="foot" style="margin:0">${S.mb.length} device(s) are kept in the project and come back when the VT485m is fitted.</p>`:""}`;
+    el.innerHTML=h;return}
+  h+=`<p class="foot" style="margin:-4px 0 0">List every meter on the RS-485 line and the values you will read from it (or write to it). Each parameter becomes one <b>Modbus RTU read</b> or <b>write</b> element in the Vutlan interface and counts toward the sensor limit. Choose a type to start from a typical parameter list, then edit, add or remove parameters.</p>
+    <div class="mbsum">${S.mb.length} device${S.mb.length===1?"":"s"} · ${np-nw} read · ${nw} write · ${UNIT.maxSensors-tally().s} sensors left</div>
+    <div class="mbgrid">${S.mb.map((d,i)=>`<div class="mbc">
+      <div class="top"><span class="num">#${i+1}</span>
+        <input data-f="name" data-i="${i}" type="text" maxlength="60" value="${esc(d.name)}" placeholder="Name, e.g. Main switchboard meter" aria-label="Name of Modbus device ${i+1}">
+        <select data-f="type" data-i="${i}" aria-label="Type of Modbus device ${i+1}">${MBT.map(t=>`<option value="${t.id}"${t.id===d.type?" selected":""}>${t.name}</option>`).join("")}</select>
+        <input data-f="addr" data-i="${i}" type="number" min="1" max="247" value="${d.addr}" title="Modbus slave address (1–247)" aria-label="Modbus address of device ${i+1}">
+        <button class="xb" type="button" data-a="mbRm" data-p="${i}" title="Remove this device" aria-label="Remove Modbus device ${i+1}">×</button></div>
+      <table><tr><th>Parameter</th><th>Unit</th><th>Read / write</th><th></th></tr>${d.params.map((q,j)=>`<tr>
+        <td><input data-f="pn" data-i="${i}" data-j="${j}" type="text" maxlength="50" value="${esc(q.n)}" placeholder="Parameter" aria-label="Parameter ${j+1} of device ${i+1}"></td>
+        <td class="u"><input data-f="pu" data-i="${i}" data-j="${j}" type="text" maxlength="10" value="${esc(q.u)}" placeholder="Unit" aria-label="Unit"></td>
+        <td class="w"><select data-f="pw" data-i="${i}" data-j="${j}" aria-label="Read or write"><option value="0"${q.w?"":" selected"}>Read</option><option value="1"${q.w?" selected":""}>Write</option></select></td>
+        <td class="x"><button class="xb" type="button" data-a="mpRm" data-p="${i}:${j}" title="Remove parameter" aria-label="Remove parameter ${j+1}">×</button></td></tr>`).join("")||`<tr><td colspan="4" style="color:var(--muted)">No parameters yet.</td></tr>`}</table>
+      <div style="display:flex;gap:8px;align-items:center"><button class="pbtn" type="button" data-a="mpAdd" data-p="${i}" ${free()<1?"disabled":""}>+ Add parameter</button>
+        <input data-f="desc" data-i="${i}" type="text" maxlength="80" value="${esc(d.desc)}" placeholder="Where is it installed?" aria-label="Description of device ${i+1}"></div></div>`).join("")}</div>
+    <div><button class="pbtn primary" type="button" data-a="mbAdd" ${S.mb.length>=UNIT.modbusMax?`disabled title="${UNIT.modbusMax} devices is the maximum"`:""}>+ Add Modbus device</button></div>`;
+  el.innerHTML=h;
+  if(keep){const n=el.querySelector(`[data-f="${keep[0]}"][data-i="${keep[1]}"]${keep[2]!=null?`[data-j="${keep[2]}"]`:""}`);if(n)n.focus()}}
+function openMb(){mbOpen=true;render();document.getElementById("mbp").scrollIntoView({behavior:"smooth",block:"start"})}
+document.addEventListener("change",e=>{const t=e.target,f=t.dataset&&t.dataset.f;if(!f||!t.closest("#mbp"))return;const d=S.mb[+t.dataset.i];if(!d)return;
+  if(f==="type"){const nt=MBTI[t.value],add=nt.params.length-d.params.length;if(add>0&&free()<add){t.value=d.type;alert(`Not enough room: the ${UNIT.maxSensors}-sensor limit would be passed.`);return}
+    d.type=t.value;d.params=JSON.parse(JSON.stringify(nt.params));render();return}
+  if(f==="addr"){d.addr=Math.max(1,Math.min(247,Math.round(+t.value||1)));render({keepDry:true});return}
+  if(f==="name"){d.name=t.value.trim()} if(f==="desc"){d.desc=t.value.trim()}
+  if(f==="pn"||f==="pu"||f==="pw"){const q=d.params[+t.dataset.j];if(!q)return;if(f==="pn")q.n=t.value.trim();if(f==="pu")q.u=t.value.trim();if(f==="pw"){q.w=+t.value;render();return}}
+  render({keepDry:true})});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.closest&&t.closest("#mbp")&&t.tagName==="INPUT"&&e.key==="Enter")t.blur()});
+
+/* ===== VT440 dry contacts unit: front render, back render (32 inputs, or 64 with the VT32 board) ===== */
+/* Terminal blocks of 6: in, ⏚, in, in, ⏚, in. Bottom row 1–32 numbered right to left, top row 33–64 (VT32) left to right. */
+const V40={front:{w:1864,h:390,led:[940,301]},
+  b32:{src:"images/vt440-back32.webp",w:2543,h:486,x0:211,step:266,bw:257,rows:{bot:[288,374]}},
+  b64:{src:"images/vt440-back64.webp",w:2329,h:444,x0:194,step:243.7,bw:234,rows:{top:[110,186],bot:[268,344]}}};
+function v440pos(k,R){const P=[0,2,3,5];
+  if(k<=32){const b=7-Math.floor((k-1)/4),j=3-((k-1)%4);return [R.x0+b*R.step+(P[j]+.5)*R.bw/6,"bot"]}
+  const b=Math.floor((k-33)/4),j=(k-33)%4;return [R.x0+b*R.step+(P[j]+.5)*R.bw/6,"top"]}
+function v440(d,ci,blocked){const max=d.b32?64:32,R=d.b32?V40.b64:V40.b32,W=460,kb=W/R.w,kf=W/V40.front.w,tw=R.bw/6*kb;
+  let hl="";for(let i=1;i<=max;i++){if(!d.inp[i-1])continue;const [x,row]=v440pos(i,R),[y0,y1]=R.rows[row];
+    hl+=`<i class="v4hl" style="border-color:var(--dry);background:rgba(221,180,94,.35);left:${(x*kb-tw/2).toFixed(1)}px;top:${Math.round(y0*kb)}px;width:${tw.toFixed(1)}px;height:${Math.round((y1-y0)*kb)}px"></i>`}
+  const fh=Math.round(V40.front.h*kf), bh=Math.round(R.h*kb);
+  return `<div class="v4wrap"><div class="v4" style="width:${W}px;height:${fh}px"><img src="images/vt440-front.webp" alt="VT440 front panel" width="${W}" height="${fh}" style="top:0">
+      <i class="v4led" style="left:${Math.round(V40.front.led[0]*kf)}px;top:${Math.round(V40.front.led[1]*kf)}px"></i></div></div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="stepper"><button type="button" data-a="d440" data-p="${ci}" ${d.n?"":"disabled"} aria-label="Fewer inputs">−</button><output>${d.n} / ${max}</output><button type="button" data-a="i440" data-p="${ci}" ${d.n>=max||blocked?"disabled":""} aria-label="More inputs">+</button></div>
+      <div class="stp"><button type="button" data-a="b32-" data-p="${ci}" ${d.b32?"":"disabled"} aria-label="Remove VT32 board">−</button><span style="min-width:150px;text-align:center;color:${d.b32?"var(--ink)":"var(--muted)"};font-weight:${d.b32?700:600}" title="VT32 dry contacts extension board: plugs into the VT440 and adds inputs 33–64">${d.b32?"VT32 board · 64 inputs":"+ VT32 board (64 inputs)"}</span><button type="button" data-a="b32+" data-p="${ci}" ${d.b32?"disabled":""} aria-label="Add VT32 board">+</button></div>
+      <button class="pbtn" type="button" data-a="dryOpen" data-p="i:${ci}" title="Choose the hardware on every input">☰ Inputs list</button></div>
+    <div class="v4wrap"><div class="v4" style="width:${W}px;height:${bh}px"><img src="${R.src}" alt="VT440 back panel, ${max} dry contact inputs" width="${W}" height="${bh}" style="top:0">${hl}</div></div>`}
+
+/* VT408D: same unit as the VT408 in a DIN-rail case (render 1740×1433). A1–A6 on the top edge (A6 left … A1 right), A7, A8, 12 V aux power, LEDs, terminator, 2× CAN on the bottom edge. */
+const is408=t=>t==="VT408"||t==="VT408D";
+const V4D={w:1740,h:1433,lane:60,ports:[[1560,0],[1310,0],[1060,0],[700,0],[450,0],[190,0],[200,1],[445,1]],top:[30,215],bot:[1228,1420],can:[[1192,1228,152,192],[1432,1228,212,192]],led:[945,1268]};
+function v408d(d,ci,blocked){const W=460,k=W/V4D.w,ih=Math.round(V4D.h*k),L=V4D.lane,H=L+ih+L;
+  let co="",ln="",hl="";
+  d.ports.forEach((v,pi)=>{const [sx,bot]=V4D.ports[pi],x=Math.round(sx*k),[y0,y1]=bot?V4D.bot:V4D.top,pw=Math.round(190*k);
+    const inner=v?`${aChip(v,"c:"+ci+":"+pi)}<button class="rm" type="button" data-a="rmc" data-p="${ci}:${pi}" aria-label="Unplug port A${pi+1}">−</button>`
+                 :`<button class="add" type="button" data-a="addc" data-p="${ci}:${pi}" ${blocked?"disabled":""} aria-label="Connect sensor to port A${pi+1}">+</button>`;
+    if(!bot){co+=`<div class="v4co" style="left:${x}px;top:${L-4}px">${inner}</div>`;ln+=`<i class="v4ln${v?" on":""}" style="left:${x-1}px;top:${L-4}px;height:${Math.round(y0*k)+30}px"></i>`}
+    else{const yb=L+ih+4;co+=`<div class="v4co b" style="left:${x}px;top:${yb}px">${inner}</div>`;const yp=L+Math.round(y1*k)-30;ln+=`<i class="v4ln${v?" on":""}" style="left:${x-1}px;top:${yp}px;height:${yb-yp}px"></i>`}
+    if(v) hl+=`<i class="v4hl" style="left:${x-pw/2}px;top:${L+Math.round(y0*k)}px;width:${pw}px;height:${Math.round((y1-y0)*k)}px"></i>`});
+  const last=isLast(ci);
+  V4D.can.forEach((b,i)=>{if(i===1&&last)return;hl+=`<i class="v4hl" title="${i?"CAN bus out to the next device":"CAN bus in"}" style="border-color:var(--can);left:${Math.round(b[0]*k)}px;top:${L+Math.round(b[1]*k)}px;width:${Math.round(b[2]*k)}px;height:${Math.round(b[3]*k)}px"></i>`});
+  return `<div class="v4wrap"><div class="v4" style="width:${W}px;height:${H}px">
+    <img src="images/vt408d.webp" alt="VT408D DIN-rail analog extension unit" width="${W}" height="${ih}" style="top:${L}px">
+    ${hl}${ln}<i class="v4led" style="left:${Math.round(V4D.led[0]*k)}px;top:${L+Math.round(V4D.led[1]*k)}px"></i>${co}</div></div>`}
+
+/* Pictures of CAN sensors (shown on their CAN bus cards) */
+const CANIMG={VT450:"images/vt450.webp",VT460:"images/vt460.webp",VT490:"images/vt490.webp"};
+
+/* ===== CAN chain ===== */
+function renderChain(){
+  const t=tally(), blocked=free()<1;
+  document.getElementById("chains").innerHTML=CANP.map(c=>{const L=busIdx(c.bus), nm=CANP.length>1?`${c.label} bus`:"CAN bus";
+    const head=`<div class="chainhead"><b>${nm}</b><small>${L.length} of ${UNIT.canMax} devices · max line 225 m${L.length>UNIT.canPsuAbove?" · CAN-12V-1A power supply required":""}</small></div>`;
+    if(!L.length)return head+`<div class="chain" data-bus="${c.bus}"><div class="empty">Nothing on this bus yet. Press + under the ${c.label} port to add an extension unit or CAN sensor.</div></div>`;
+    const cards=L.map((ci,pos)=>{const d=S.can[ci];let body="";
+      if(d.t==="VT408") body=v408(d,ci,blocked);
+      else if(d.t==="VT408D") body=v408d(d,ci,blocked);
+      else if(d.t==="VT440") body=v440(d,ci,blocked);
+      else body=CANIMG[d.t]?`<div style="display:flex;gap:16px;align-items:center"><img src="${CANIMG[d.t]}" alt="${d.t}" style="display:block;flex:none;width:auto;height:auto;max-height:180px;max-width:200px"><div class="empty" style="padding:0">${CANT[d.t].name}<br>Counts as ${CANT[d.t].s} sensors<br><span style="font-size:.82rem">CAN in / out on the RJ12 sockets, TR = terminator for the last device on the bus</span></div></div>`
+        :`<div class="empty" style="padding:0">${CANT[d.t].note}</div>`;
+      return `<div class="card" data-chain><div class="hd"><span class="nm"><b>${d.t}</b><input class="lbl" type="text" maxlength="60" value="${esc(d.label||"")}" placeholder="Add a name" data-ci="${ci}" aria-label="Name of CAN device ${pos+1}" title="Click to rename"></span><label class="pos" title="Position on the ${nm}">${CANP.length>1?c.label:"CAN"} #<select data-a="canMove" data-p="${ci}" aria-label="Position of ${d.t} on the ${nm}">${L.map((_,k)=>`<option value="${k}"${k===pos?" selected":""}>${k+1}</option>`).join("")}</select></label></div>${body}<div class="pw ${pos<UNIT.canPsuAbove?"":"ext"}">Power: ${pos<UNIT.canPsuAbove?"from controller":"from CAN-12V-1A"}</div><button class="cardrm" type="button" data-a="canRm" data-p="${ci}">Remove ${d.t}</button></div>`});
+    if(L.length>UNIT.canPsuAbove) cards.splice(UNIT.canPsuAbove,0,`<div class="card psu" data-chain><div class="hd"><b>CAN-12V-1A</b><small>power module</small></div><img src="images/can-psu.webp" alt="CAN-12V-1A CAN power supply" width="220" height="138" style="display:block;margin:0 auto"><div class="empty" style="padding:0;max-width:240px">Installed after ${CANP.length>1?c.label+" ":""}device #${UNIT.canPsuAbove}. Powers devices ${UNIT.canPsuAbove+1}–${UNIT.canMax}. Added automatically and not counted as a CAN device.</div></div>`);
+    return head+`<div class="chain" data-bus="${c.bus}">${cards.join("")}</div>`}).join("");
+}
+
+/* ===== CAN cabling: port → #1 → #2 … drawn over the front box ===== */
+/* Snake layout: odd rows run right → left, so each row starts under the end of the one above */
+const CARD_W=490, CARD_GAP=26;
+function layoutChain(el){
+  const cards=[...el.querySelectorAll(".card[data-chain]")]; if(!cards.length)return 1;
+  const cs=getComputedStyle(el), w=el.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const cols=Math.max(1,Math.min(cards.length,Math.floor((w+CARD_GAP)/(CARD_W+CARD_GAP))));
+  el.style.gridTemplateColumns=`repeat(${cols},minmax(0,${CARD_W}px))`;
+  cards.forEach((c,i)=>{const r=Math.floor(i/cols);let k=i%cols;if(r%2)k=cols-1-k;c.style.gridRow=r+1;c.style.gridColumn=k+1});
+  return cols}
+function drawCanLines(){
+  const box=document.getElementById("frontBox"); box.querySelector(".canlines")?.remove();
+  const B=box.getBoundingClientRect(), ox=box.scrollLeft-B.left, oy=-B.top;
+  const R=el=>{const r=el.getBoundingClientRect();return {l:r.left+ox,r:r.right+ox,t:r.top+oy,b:r.bottom+oy}};
+  const mid=B.width/2+box.scrollLeft, dots=[];let d="";
+  box.querySelectorAll(".chain[data-bus]").forEach(ch=>{layoutChain(ch);
+  const cards=[...ch.querySelectorAll(".card[data-chain]")]; if(!cards.length)return;
+  const pb=box.querySelector(`#front [data-a="canPop"][data-b="${ch.dataset.bus}"]`); if(!pb)return;
+  const P=R(pb.closest(".co")), sx=(P.l+P.r)/2, sy=P.b;
+  const rc=cards.map(R), JY=20;
+  const c0=rc[0];
+  if(pb.closest(".co").classList.contains("top")){const fr=R(document.getElementById("front")),xs=fr.r+14,ty=fr.t+8;   // socket on the top edge: up above the callouts, right, then down
+    d+=` M${sx},${P.t} V${ty} H${xs} V${c0.t-12} H${c0.l-14} V${c0.t+JY} H${c0.l}`;dots.push([sx,P.t])}
+  else d+=` M${sx},${sy} V${c0.t-12} H${c0.l-14} V${c0.t+JY} H${c0.l}`; dots.push([c0.l,c0.t+JY]);
+  for(let i=1;i<rc.length;i++){const a=rc[i-1],b=rc[i],y1=a.t+JY,y2=b.t+JY;
+    if(b.l>=a.r-4){d+=` M${a.r},${y1} H${b.l}`;dots.push([a.r,y1],[b.l,y2])}                 // next to the right
+    else if(b.r<=a.l+4){d+=` M${a.l},${y1} H${b.r}`;dots.push([a.l,y1],[b.r,y2])}            // next to the left
+    else{const right=(a.l+a.r)/2>mid;                                                            // next row, straight down
+      if(right){const x=Math.max(a.r,b.r)+13;d+=` M${a.r},${y1} H${x} V${y2} H${b.r}`;dots.push([a.r,y1],[b.r,y2])}
+      else{const x=Math.min(a.l,b.l)-14;d+=` M${a.l},${y1} H${x} V${y2} H${b.l}`;dots.push([a.l,y1],[b.l,y2])}}}});
+  if(!d)return;
+  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("class","canlines");
+  svg.setAttribute("width",box.scrollWidth);svg.setAttribute("height",box.scrollHeight);
+  svg.innerHTML=`<path d="${d}" fill="none" stroke="var(--cable)" stroke-width="3" stroke-linejoin="round"/><g fill="var(--cable)">${dots.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4"/>`).join("")}</g>`;
+  box.appendChild(svg);
+}
+addEventListener("resize",()=>requestAnimationFrame(drawCanLines));
+
+/* ===== Virtual elements ===== */
+let vOpen={net:false,mod:false};
+function renderVirt(){vsync(S);const full=elements()>=UNIT.elements, modem=!!S.p.MODEM;
+  const rows=(list,enabled)=>list.map(it=>{const n=S.v[it.id],atMax=it.max&&n>=it.max;
+    return `<div class="vr"><span>${it.name}${it.note||it.max?`<small>${[it.note,it.max?"up to "+it.max:""].filter(Boolean).join(" · ")}</small>`:it.multi?`<small>up to ${it.multi} recipients each</small>`:""}</span>
+    <div class="stepper"><button type="button" data-a="v-" data-p="${it.id}" ${n&&enabled?"":"disabled"} aria-label="Fewer ${it.name}">−</button><output>${n}</output>
+    <button type="button" data-a="v+" data-p="${it.id}" ${enabled&&!full&&!atMax?"":"disabled"} aria-label="More ${it.name}" title="${!enabled?"Install the LTE modem first":full?`${UNIT.elements}-element limit reached`:atMax?"Maximum reached":"Add"}">+</button></div></div>`}).join("");
+  const plan=list=>{const used=list.filter(it=>S.v[it.id]);if(!used.length)return "";
+    return `<div class="vplan">${used.map(it=>`<div class="vpc"><h3>${it.name} <small>${S.v[it.id]}${it.max?" of "+it.max:""}${it.multi?" · "+S.vd[it.id].reduce((a,e)=>a+e.r.length,0)+" recipients":""}</small></h3>${S.vd[it.id].map((e,k)=>it.multi?`<div class="vpm"><div class="vpr">
+      <span class="num">${k+1}</span>
+      <input data-v="${it.id}" data-k="${k}" data-f="d" type="text" maxlength="100" value="${esc(e.d)}" placeholder="What for, e.g. temperature alarms" aria-label="${it.name} ${k+1}: purpose" style="grid-column:span 3"></div>
+      <div class="vrc">${e.r.map((r,j)=>`<div class="vpr sub"><span class="num">${j+1}</span>
+        <input data-v="${it.id}" data-k="${k}" data-j="${j}" data-f="r" type="text" maxlength="100" value="${esc(r)}" placeholder="${esc(it.ph)}" aria-label="${it.name} ${k+1}: recipient ${j+1}">
+        <button class="xb" type="button" data-a="vrRm" data-p="${it.id}:${k}:${j}" ${e.r.length>1?"":"disabled"} title="Remove recipient" aria-label="Remove recipient ${j+1}">×</button></div>`).join("")}
+      <div class="vrb"><button class="pbtn" type="button" data-a="vrAdd" data-p="${it.id}:${k}" ${e.r.length>=it.multi?`disabled title="${it.multi} recipients is the maximum"`:""}>+ Add recipient <small>${e.r.length} of ${it.multi}</small></button>
+      <button class="pbtn" type="button" data-a="vRm" data-p="${it.id}:${k}" aria-label="Remove ${it.name} ${k+1}">× Remove this notification</button></div></div></div>`:`<div class="vpr">
+      <span class="num">${k+1}</span>
+      <input data-v="${it.id}" data-k="${k}" data-f="t" type="text" maxlength="100" value="${esc(e.t)}" placeholder="${esc(it.ph||"Target")}" aria-label="${it.name} ${k+1}: target">
+      <input data-v="${it.id}" data-k="${k}" data-f="d" type="text" maxlength="100" value="${esc(e.d)}" placeholder="What for, e.g. temperature alarms" aria-label="${it.name} ${k+1}: purpose">
+      <button class="xb" type="button" data-a="vRm" data-p="${it.id}:${k}" title="Remove this element" aria-label="Remove ${it.name} ${k+1}">×</button></div>`).join("")}</div>`).join("")}</div>`};
+  const note=`<p class="note"><b>Plan ahead.</b> Elements added here are settings inside the Vutlan web interface: they add <b>no hardware and no products</b> to the parts list, they only count toward the ${UNIT.elements}-element limit (${elements()} used). List every recipient, address and request, so the connection plan is ready before installation.</p>`;
+  const sumV=list=>sumOf(list.flatMap(it=>Array(S.v[it.id]).fill(it.name)))||"Nothing planned yet";
+  const draw=(id,key,title,list,enabled,intro)=>{const el=document.getElementById(id),open=vOpen[key],n=list.reduce((a,i)=>a+S.v[i.id],0);
+    const ae=document.activeElement,keep=ae&&ae.closest&&ae.closest("#"+id)&&ae.dataset.v?[ae.dataset.v,ae.dataset.k,ae.dataset.f,ae.dataset.j]:null;
+    el.classList.toggle("closed",!open);el.classList.toggle("off",!enabled);
+    let h=accHead("accV_"+key,title,`${n} element${n===1?"":"s"}`,open,enabled?sumV(list):intro);
+    if(open)h+=note+`<p class="foot" style="margin:0">${intro}</p><div class="vrows">${rows(list,enabled)}</div>${plan(list)}`;
+    el.innerHTML=h;
+    if(keep){const x=el.querySelector(`input[data-v="${keep[0]}"][data-k="${keep[1]}"][data-f="${keep[2]}"]${keep[3]!=null?`[data-j="${keep[3]}"]`:""}`);if(x)x.focus()}};
+  draw("vnet","net","Network elements",VIRT.net,true,`Use Ethernet access through the LAN port${modem?` or the ${S.p.MODEM} LTE modem`:""}. Press + to add an element, then fill in who or what it reaches.`);
+  draw("vmod","mod","Modem elements",VIRT.modem,modem,modem?`Use the ${S.p.MODEM} SIM card for SMS and phone calls.`:(PORT.MODEM?"Press + on the modem slot to install the LTE modem and enable these.":"This unit has no LTE modem slot."));
+}
+document.addEventListener("change",e=>{const t=e.target;if(!t.dataset||!t.dataset.v||!t.closest(".vnp"))return;const x=(S.vd[t.dataset.v]||[])[+t.dataset.k];if(!x)return;
+  if(t.dataset.f==="r")x.r[+t.dataset.j]=t.value.trim();else x[t.dataset.f]=t.value.trim();render({keepDry:true})});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.closest&&t.closest(".vnp")&&t.tagName==="INPUT"&&e.key==="Enter")t.blur()});
+
+/* ===== LoRaWAN sensors panel (LR800): wireless, no port ===== */
+let lwOpen=true;
+function renderLw(){const el=document.getElementById("lwp");el.hidden=!UNIT.lora;if(!UNIT.lora)return;el.classList.toggle("closed",!lwOpen);
+  const ae=document.activeElement,keep=ae&&ae.closest&&ae.closest("#lwp")&&ae.dataset.f?[ae.dataset.f,ae.dataset.i]:null;
+  const t=tally(),f=free();
+  let h=accHead("accLw","LoRaWAN wireless sensors",`${S.lw.length} sensor${S.lw.length===1?"":"s"} · ${t.lw} value${t.lw===1?"":"s"}`,lwOpen,sumOf(S.lw.map(lwName))||"No sensors yet");
+  if(!lwOpen){el.innerHTML=h;return}
+  h+=`<p class="note"><b>Wireless only.</b> LoRaWAN sensors do not plug into any port: they talk to the LR800's LoRa antenna (EU868, up to 1 km line of sight, about 3 floors up and down). During setup you scan each sensor's QR code in the LR800 web interface. Every sensor value counts toward the ${UNIT.maxSensors}-sensor limit (${f} left).</p>
+    <div class="vrows">${LWT.map(x=>{const n=S.lw.filter(d=>d.t===x.id).length;return `<div class="vr"><span>${x.name}<small>${x.id==="CUS"?x.note:[x.note,x.s>1?x.s+" sensor values":"1 sensor value"].filter(Boolean).join(" · ")}</small></span>
+      <div class="stepper"><button type="button" data-a="lw-" data-p="${x.id}" ${n?"":"disabled"} aria-label="Fewer ${x.name}">−</button><output>${n}</output>
+      <button type="button" data-a="lw+" data-p="${x.id}" ${f>=x.s?"":`disabled title="${UNIT.maxSensors}-sensor limit reached"`} aria-label="More ${x.name}">+</button></div></div>`}).join("")}</div>
+    ${S.lw.length?`<div class="lwgrid">${S.lw.map((d,i)=>`<div class="lwr"><span class="num">#${i+1}</span><span class="ic" aria-hidden="true">📶</span>
+      <select data-f="t" data-i="${i}" aria-label="Type of LoRaWAN sensor ${i+1}">${LWT.map(x=>`<option value="${x.id}"${x.id===d.t?" selected":""}>${x.id==="CUS"?x.name:x.id+" · "+x.name.replace(/^LR\d+ /,"")}</option>`).join("")}</select>
+      <input data-f="name" data-i="${i}" type="text" maxlength="60" value="${esc(d.name||"")}" placeholder="${d.t==="CUS"?"Sensor make and model":"Name, e.g. Cold aisle 3"}" aria-label="Name of LoRaWAN sensor ${i+1}">
+      ${d.t==="CUS"?`<span class="vals"><input data-f="s" data-i="${i}" type="number" min="1" max="20" value="${lwS(d)}" title="How many values this sensor reports" aria-label="Values of sensor ${i+1}">values</span>`:`<input data-f="desc" data-i="${i}" type="text" maxlength="80" value="${esc(d.desc||"")}" placeholder="Location, e.g. Floor 2, room 204" aria-label="Location of LoRaWAN sensor ${i+1}">`}
+      <button class="xb" type="button" data-a="lwRm" data-p="${i}" title="Remove this sensor" aria-label="Remove LoRaWAN sensor ${i+1}">×</button>
+      ${d.t==="CUS"?`<span></span><span></span><input data-f="desc" data-i="${i}" type="text" maxlength="80" value="${esc(d.desc||"")}" placeholder="Location, e.g. Floor 2, room 204" aria-label="Location of LoRaWAN sensor ${i+1}" style="grid-column:span 3"><span></span>`:""}</div>`).join("")}</div>`:`<p class="foot" style="margin:0">Press + to add sensors. Each one gets a row for its name and location.</p>`}`;
+  el.innerHTML=h;
+  if(keep){const x=el.querySelector(`[data-f="${keep[0]}"][data-i="${keep[1]}"]`);if(x)x.focus()}}
+function openLw(){lwOpen=true;render();document.getElementById("lwp").scrollIntoView({behavior:"smooth",block:"start"})}
+document.addEventListener("change",e=>{const t=e.target,f=t.dataset&&t.dataset.f;if(!f||!t.closest("#lwp"))return;const d=S.lw[+t.dataset.i];if(!d)return;
+  if(f==="t"){const old=lwS(d),nd={...d,t:t.value};if(lwS(nd)-old>free()){t.value=d.t;alert(`Not enough room: the ${UNIT.maxSensors}-sensor limit would be passed.`);return}d.t=t.value;render();return}
+  if(f==="s"){const v=Math.max(1,Math.min(20,Math.round(+t.value||1)));if(v-lwS(d)>free()){t.value=lwS(d);alert(`Not enough room: the ${UNIT.maxSensors}-sensor limit would be passed.`);return}d.s=v;render();return}
+  d[f]=t.value.trim();render({keepDry:true})});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.closest&&t.closest("#lwp")&&t.tagName==="INPUT"&&e.key==="Enter")t.blur()});
+
+/* ===== Summary ===== */
+function meter(k,v,cap){const p=Math.min(100,v/cap*100),c=p>=100?"e":p>=80?"w":"";return `<div class="m"><div class="k">${k}</div><div class="v">${v} / ${cap}</div><div class="bar"><i class="${c}" style="width:${p}%"></i></div></div>`}
+/* Parts list of the open project: [name, qty, unit MSRP|null] */
+function computeBom(){const t=tally();
+  const MV=MODELS[variant()];const rows=[[MV.name+" monitoring unit, "+MV.power,1,MV.price||null]];
+  if(mountOf())rows.push([mountOf().name,1]);
+  const add=(n,q)=>{if(q)rows.push([n,q])};
+  const val=k=>S.p[k];
+  if(val("MODEM")) add(byId("modem")[val("MODEM")].name,1);
+  if(val("MODEM")&&S.ant) add("VT6604 4G SMA antenna, 3 m cable",1);
+  if(val("EXT")==="485m"){add("VT485m Modbus RTU extension",1);const c={};S.mb.forEach(d=>{const n=(d.type==="CUS"?(d.name||"Modbus RTU device"):MBTI[d.type].name)+" (Modbus RTU)";c[n]=(c[n]||0)+1});Object.keys(c).forEach(n=>add(n,c[n]))}
+  if(val("EXT")==="485r"){add("VT485r OSDP v2 reader extension",1);add("OSDP v2 reader / keypad",t.rd);add("External power supply for reader (readers 3–4)",Math.max(0,t.rd-UNIT.readersPowered))}
+  if(val("BAT")) add("VT-ACCU rechargeable backup",1);
+  if(val("LBAT")) add("Backup battery 9–11.1 V DC (2-pin PH connector)",1);
+  if(UNIT.lora){const c={};S.lw.forEach(d=>{const n=d.t==="CUS"?(d.name||"Other LoRaWAN sensor")+" (LoRaWAN)":LWTI[d.t].name;c[n]=(c[n]||0)+1});
+    LWT.filter(x=>x.id!=="CUS").forEach(x=>add(x.name,c[x.name]||0));Object.keys(c).filter(n=>!LWT.some(x=>x.name===n)).sort().forEach(n=>add(n,c[n]))}
+  add("VT408 analog extension unit",t.n408-t.n408d); add("VT408D analog extension unit, DIN rail",t.n408d); add("VT440 dry contacts unit",t.n440); add("VT32 dry contacts extension board for VT440",t.n32);
+  OPT.can.filter(c=>c.s).forEach(c=>add(c.name,S.can.filter(d=>d.t===c.id).length));
+  if(t.psu) add("CAN-12V-1A power supply",t.psu);
+  const allA=[...Object.entries(S.p).filter(([k])=>/^A[1-8]$/.test(k)).map(([,v])=>v),...S.can.flatMap(d=>d.ports||[])].filter(Boolean);
+  OPT.analog.forEach(a=>add(a.name,allA.filter(v=>base(v)===a.id).reduce((x,v)=>x+qty(v),0)));
+  const wl={};allA.filter(v=>base(v)==="VT591").forEach(v=>(wlcCombo(wlcLen(v))||[]).forEach(L=>wl[L]=(wl[L]||0)+1));
+  WLC.forEach(L=>add(`WLC${L} leak detection cable, ${L} m`,wl[L]||0));
+  {const cnt={};const put=(v,c)=>{if(!v)return;const n=v==="CUS"?(c||"Your hardware")+" (dry contact)":DRYO[v].name;cnt[n]=(cnt[n]||0)+1};
+   Object.entries(S.p).forEach(([k,v])=>{if(/^D\d+$/.test(k))put(v,(S.cust||{})[k])});
+   S.can.forEach(d=>{if(d.t==="VT440")d.inp.forEach((v,k)=>put(v,d.cust[k]))});
+   OPT.dry.forEach(o=>{if(o.id!=="CUS")add(o.name,cnt[o.name]||0)});Object.keys(cnt).filter(n=>!OPT.dry.some(o=>o.name===n)).sort().forEach(n=>add(n,cnt[n]))}
+  [...OPT.relay].filter(r=>r.id!=="CUS").forEach(r=>add(r.name+" on relay",["R1","R2"].filter(k=>S.p[k]===r.id).length));
+  ["R1","R2"].filter(k=>S.p[k]==="CUS").forEach(k=>add(devName(k)+" (on relay)",1));
+  {const c={};Object.entries(S.p).forEach(([k,v])=>{if(!/^O\d+$/.test(k)||!v)return;const n=(v==="CUS"?((S.cust||{})[k]||"Your hardware"):byId("iso")[v].name)+" (signal from isolated output)";c[n]=(c[n]||0)+1});
+   Object.keys(c).forEach(n=>add(n,c[n]))}
+  OPT.out12.filter(r=>r.id!=="CUS").forEach(r=>{const q=["E1","E2"].filter(k=>S.p[k]===r.id).length;add(r.name,r.id==="VT109"?q/2:q)});
+  ["E1","E2"].filter(k=>S.p[k]==="CUS").forEach(k=>add(devName(k)+" (on 12 V output)",1));
+  if(val("USB")==="HUB"){add("USB hub",1);if(S.hub.cam)add("USBFHD Dome Camera",1);if(S.hub.flash)add("USB flash drive (logs)",1)} else if(val("USB")) add(byId("usb")[val("USB")].name,1);
+  if(val("SD")) add("microSD card, SDHC / SDXC up to 512 GB",1);
+  if(val("DC12")) add(byId("dc12")[val("DC12")].name,1);
+  return rows}
+const isVutlan=n=>/^(VT|CAN-12V|WLC|USBFHD|LR\d|KMS-|DRP-)/.test(n);
+function renderSum(){
+  const t=tally();
+  document.getElementById("sum").innerHTML=meter("Sensors &amp; I/O",t.s,UNIT.maxSensors)+meter("Elements",elements(),UNIT.elements)+meter("CAN devices",t.can,UNIT.canMax*CANP.length)+
+    ((UNIT.analog+t.n408*8)?meter("Analog ports",t.analog,UNIT.analog+t.n408*8):"")+meter("Dry inputs",t.dry,UNIT.dry+t.cap440);
+  const rows=computeBom();
+  document.getElementById("bom").innerHTML=`<tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">MSRP €</th></tr>`+rows.map(r=>`<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">${r[2]?r[2].toFixed(2):"—"}</td></tr>`).join("");
+  const n=[];
+  n.push(["",`${t.s} of ${UNIT.maxSensors} counted: ${UNIT.onboard} onboard (${UNIT.onboardText}), ${UNIT.lora?"LoRaWAN sensor values, ":""}sensors, dry inputs, used outputs and Modbus devices.`]);
+  {const v=variant(),M=MODELS[v];n.push(["",`${M.name}: ${M.power}.`+(BASE.powerMenu?" Click an AC or DC input on the back panel to change the power version.":(BASE.powerNote||" DC 12V backup input on the back for a UPS or battery."))]);
+   if(BASE.mounts){const m=mountOf();n.push(["",m?`Mounting: ${m.name}.`:"Mounting: desktop. Choose a DIN rail holder, wall brackets or a 19\" bracket in the Mounting menu above the front panel."]);
+     if(S.mount==="VT122t"&&!S.can.some(d=>d.t==="VT408"))n.push(["warn","The VT122t bracket holds the unit and one VT408. Add a VT408, or choose the VT122i for the unit alone."]);
+     if(S.mount==="VT122t"&&S.can.filter(d=>d.t==="VT408").length>1)n.push(["",`The VT122t holds one VT408; the other ${S.can.filter(d=>d.t==="VT408").length-1} need their own mounting.`]);}
+   if(UNIT.toConfirm) n.push(["warn",`${M.name} limits used here are still to be confirmed: ${UNIT.maxSensors} sensors, ${UNIT.canMax} CAN devices, CAN-12V-1A after device #${UNIT.canPsuAbove}.`]);
+   if(M.pending) n.push(["warn",`${M.name} back panel render not added yet; the nearest render is shown.`]);}
+  if(UNIT.analog&&t.analog>=UNIT.analog+t.n408*8) n.push(["warn","All analog ports are in use. Add a VT408 on the CAN port for 8 more."]);
+  if(UNIT.lora){n.push(["",`${t.nlw} LoRaWAN sensor${t.nlw===1?"":"s"} (${t.lw} sensor value${t.lw===1?"":"s"}) connect wirelessly to the LoRa antenna: EU868, up to 1 km line of sight, about 3 floors up and down.`]);
+    if(!UNIT.analog&&!t.n408)n.push(["",`The ${model()} has no analog ports. Add a VT408 on the CAN port for 8 wired analog sensors.`])}
+  if(t.rd>UNIT.readersPowered) n.push(["warn",`Readers 1–2 are powered by the unit. Reader${t.rd>3?"s 3–4 need":" 3 needs"} an external power supply.`]);
+  const vt591=[...Object.values(S.p),...S.can.flatMap(d=>d.ports||[])].filter(v=>base(v)==="VT591").length;
+  [...Object.values(S.p),...S.can.flatMap(d=>d.ports||[])].filter(v=>base(v)==="VT591").forEach(v=>{const L=wlcLen(v),c=wlcCombo(L),tot=c.reduce((a,b)=>a+b,0);
+    n.push([tot>L?"warn":"",`VT591 with ${L} m of cable: ${c.map(x=>"WLC"+x).join(" + ")} = ${tot} m${tot>L?` (nearest available, ${tot-L} m longer)`:""}.`])});
+  n.push(["",`${elements()} of ${UNIT.elements} elements: ${t.s} sensors and I/O plus ${vsum()} virtual elements.`]);
+  if(S.p.MODEM) n.push(["",`${S.p.MODEM} fitted: Ethernet access continues over LTE if the LAN connection fails.`]);
+  CANP.forEach(c=>{const k=busIdx(c.bus).length,nm=CANP.length>1?c.label+" bus":"CAN bus";
+    if(k>UNIT.canPsuAbove) n.push(["warn",`${nm}: ${k} CAN devices is above ${UNIT.canPsuAbove}, so a CAN-12V-1A power supply is added.`]);
+    if(k>=UNIT.canMax) n.push(["err",`${nm} is at its ${UNIT.canMax}-device maximum.`])});
+  if(t.s>=UNIT.maxSensors) n.push(["err",`The ${UNIT.maxSensors}-sensor limit is reached.`]);
+  else if(t.s/UNIT.maxSensors>=.8) n.push(["warn",`${Math.round(t.s/UNIT.maxSensors*100)}% of the ${UNIT.maxSensors}-sensor limit is used.`]);
+  document.getElementById("notes").innerHTML=n.map(([c,x])=>`<li class="${c}">${x}</li>`).join("");
+}
+
+function render(o={}){
+  vsync(S);
+  renderPanel(document.getElementById("front"),FRONT,BASE.frontImg,frontExtra);
+  document.getElementById("backBox").hidden=!!BASE.noBack;document.getElementById("frontLbl").textContent=BASE.frontLabel||"Front panel";
+  document.getElementById("backLbl").textContent=BASE.backLabel||"Back panel";
+  if(!BASE.noBack)renderPanel(document.getElementById("back"),BACK,MODELS[variant()].img,BASE.backLeds?()=>{const t=tally();let hl="";BASE.backLeds.forEach(([x,yy,k,c])=>{const on=k==="on"?1:k==="can"?t.canB[0]:k==="lw"?t.nlw:S.p[k];if(on)hl+=`<div class="led ${c||""}" style="left:${x}px;top:${TL+yy}px"></div>`});return {html:"",ln:"",hl}}:null);
+  renderChain();renderSum();renderConn();fit();requestAnimationFrame(drawCanLines);document.getElementById("model").textContent=model();document.getElementById("modelSel").value=S.base;document.getElementById("backHint").textContent=BASE.hint;renderMount();
+  trackHistory();const c=curP();if(c){c.state=snapshot();persist()} renderProj();renderOrder();renderExport();if(!o.keepDry){renderLw();renderDry();renderOut();renderMb();renderVirt()}
+}
+function fit(){["front","back"].forEach(id=>{const el=document.getElementById(id),box=el.parentElement;
+  el.style.zoom=Math.max(.5,Math.min(1,(box.clientWidth-16)/BASE.pw))})}
+addEventListener("resize",fit);
+
+/* ===== Menu & actions ===== */
+const menu=document.getElementById("menu"); let pick=null;
+function openMenu(btn,title,opts,cb){
+  if(opts.length===1){cb(opts[0].id);render();return}
+  pick=cb; menu.innerHTML=`<h3>${title}</h3>`+opts.map(o=>`<button type="button" data-o="${o.id}">${o.name}<small>${o.note||o.id}</small></button>`).join("");
+  menu.hidden=false; const r=btn.getBoundingClientRect(),mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let x=Math.min(innerWidth-mw-8,Math.max(8,r.left)),y=r.bottom+6; if(y+mh>innerHeight-8)y=Math.max(8,r.top-mh-6);
+  menu.style.left=x+"px";menu.style.top=y+"px";menu.querySelector("button")?.focus();
+}
+const closeMenu=()=>{menu.hidden=true;pick=null};
+function chainMenu(path){const v=getA(path),o=AN[base(v)],n=qty(v);
+  menu.innerHTML=`<h3>${o.name} chain</h3><p style="margin:0 8px 8px;font-size:.85rem;color:var(--muted)">Sensors daisy-chained on one port. The whole chain shows as one sensor.</p>
+   <div class="stepper" style="margin:0 8px 6px"><button type="button" data-a="ch-" data-p="${path}" ${n>1?"":"disabled"} aria-label="Shorter chain">−</button><output style="min-width:110px;white-space:nowrap">${n} in chain</output><button type="button" data-a="ch+" data-p="${path}" ${n>=CHAIN_MAX?"disabled":""} aria-label="Longer chain">+</button></div>${descField(path)}`}
+function wlcMenu(path){const L=wlcLen(getA(path)),c=wlcCombo(L),tot=c.reduce((a,b)=>a+b,0);
+  menu.innerHTML=`<h3>VT591 leak cable length</h3><p style="margin:0 8px 8px;font-size:.85rem;color:var(--muted)">WLC cables join end to end, up to ${WLC_MAX} m in total.</p>
+   <div style="display:flex;gap:8px;align-items:center;margin:0 8px 8px"><div class="stepper"><button type="button" data-a="wl-" data-p="${path}" ${L>3?"":"disabled"} aria-label="Shorter">−</button>
+   <input id="wlcLen" type="number" min="3" max="${WLC_MAX}" value="${L}" data-p="${path}" aria-label="Cable length in metres" style="width:64px;text-align:center;border:0;background:transparent;color:var(--ink);font:600 .95rem var(--f-mono)">
+   <button type="button" data-a="wl+" data-p="${path}" ${L<WLC_MAX?"":"disabled"} aria-label="Longer">+</button></div><span class="cap">metres</span></div>
+   <div style="margin:0 8px 8px;font:600 .9rem var(--f-mono)">${c.map(x=>`<span style="display:inline-block;border:1.5px solid var(--analog);border-radius:4px;padding:1px 5px;margin:2px">WLC${x}</span>`).join(" + ")} = ${tot} m</div>
+   ${tot>L?`<p style="margin:0 8px 8px;font-size:.82rem;color:var(--warn)">No exact combination for ${L} m, so the nearest longer one is used.</p>`:""}
+   <div style="display:flex;flex-wrap:wrap;gap:4px;margin:0 8px 6px">${WLC.map(x=>`<button type="button" class="qs" data-a="wlset" data-p="${path}" data-l="${x}">${x} m</button>`).join("")}</div>${descField(path)}`}
+function openWlc(btn,path){wlcMenu(path);menu.hidden=false;const r=btn.getBoundingClientRect(),mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let x=Math.min(innerWidth-mw-8,Math.max(8,r.left)),y=r.bottom+6;if(y+mh>innerHeight-8)y=Math.max(8,r.top-mh-6);menu.style.left=x+"px";menu.style.top=y+"px"}
+document.addEventListener("change",e=>{if(e.target.id==="wlcLen"){const p=e.target.dataset.p;let L=Math.round(+e.target.value||3);L=Math.max(3,Math.min(WLC_MAX,L));setA(p,"VT591@"+L);render();wlcMenu(p)}});
+function devName(path){if(path.startsWith("w:")){const d=S.lw[+path.slice(2)];return lwName(d)+(d.t!=="CUS"&&d.name?" · "+d.name:"")+(lwS(d)>1?` (${lwS(d)} values)`:"")}if(path.startsWith("m:")){const d=S.mb[+path.slice(2)];return `${d.name||MBTI[d.type].name} · ${d.params.length} parameter${d.params.length===1?"":"s"}`}if(/^(O\d+|R1|R2|E1|E2)$/.test(path)&&S.p[path]==="CUS")return (S.cust||{})[path]||"Your hardware";if(path==="ANT")return "VT6604 4G SMA antenna (3 m cable)";if(path==="MOUNT")return mountOf()?mountOf().name:"";if(path.startsWith("i:")||/^D\d+$/.test(path)){const g=dryGet(path);return g.v?dryName(g.v,g.c):""}const v=path.startsWith("c:")?getA(path):S.p[path];if(!v)return "";
+  const o=AN[base(v)];if(o)return o.name+(o.chain?` (chain of ${qty(v)})`:"")+(o.cable?` + ${wlcLen(v)} m WLC`:"");
+  const P=PORT[path];const opt=P&&OPT[P.kind]?OPT[P.kind].find(x=>x.id===v):null;return opt?opt.name:v}
+function placeMenu(btn){menu.hidden=false;const r=btn.getBoundingClientRect(),mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let x=Math.min(innerWidth-mw-8,Math.max(8,r.left)),y=r.bottom+6;if(y+mh>innerHeight-8)y=Math.max(8,r.top-mh-6);menu.style.left=x+"px";menu.style.top=y+"px"}
+function openInfo(btn,path){const own=/^(O\d+|R1|R2|E1|E2)$/.test(path)&&S.p[path]==="CUS";
+  menu.innerHTML=`<h3>${esc(devName(path))}</h3><p style="margin:0 8px 4px;font-size:.85rem;color:var(--muted)">${esc(where(path))}</p>${own?`<label class="dfield"><span>Your hardware</span><input id="custIn" type="text" maxlength="60" value="${esc((S.cust||{})[path]||"")}" data-p="${path}" placeholder="e.g. Fire damper controller" autocomplete="off"></label>`:""}${descField(path)}`;placeMenu(btn);
+  const i=document.getElementById(own?"custIn":"descIn");i.focus();i.select()}
+document.addEventListener("change",e=>{if(e.target.id==="custIn"){S.cust=S.cust||{};S.cust[e.target.dataset.p]=e.target.value.trim();render()}});
+const PLABEL={P12:"Power input 12V DC",R12:"Reserve power input 12V DC",PDC:"Power input 24–48V DC",MOUNT:"Mounting",ANT:"Modem antenna port",MODEM:"Modem slot",USB:"USB-C",R1:"Relay 1",R2:"Relay 2",E1:"12V output E1",E2:"12V output E2",EXT:"Extension slot",SD:"SD card",BAT:"Battery slot",LBAT:"Backup battery input",PIN:"DC 12V power",DC12:"DC 12V backup"};
+function where(path){if(path.startsWith("w:"))return `${model()} · LoRaWAN #${+path.slice(2)+1} (wireless)`;if(path.startsWith("m:")){const d=S.mb[+path.slice(2)];return `${model()} · Modbus RTU #${+path.slice(2)+1} · address ${d.addr}`}
+  if(path.startsWith("i:")){const[,ci,k]=path.split(":");const d=S.can[+ci];return `${canName(+ci)} VT440${d.label?" · "+d.label:""} · Input ${+k+1}`}
+  if(path.startsWith("c:")){const[,ci,pi]=path.split(":");const d=S.can[+ci];return `${canName(+ci)} ${d.t}${d.label?" · "+d.label:""} · A${+pi+1}`}
+  if(/^D\d+$/.test(path))return `${model()} · Dry input ${path.slice(1)}`;
+  if(S.p[path]==="VT109")return `${model()} · 12V outputs E1 + E2`;
+  if(/^O\d+$/.test(path))return `${model()} · Isolated output ${path.slice(1)}`;
+  return `${model()} · ${(BASE.plabel||{})[path]||PLABEL[path]||path}`}
+/* Product pages (vutlan.com) and datasheets (Confluence DEN space) */
+const SHOP="https://www.vutlan.com/", DOCS="https://vutlan.atlassian.net/wiki/spaces/DEN/pages/";
+const pp=(cat,id,slug)=>cat?`${SHOP}${cat}/${id}-${slug}.html`:`${SHOP}index.php?id_product=${id}&controller=product`;
+const LINKS={
+  VT410:{p:pp("analog-sensors",59,"vt410-dc-voltage-monitor"),d:558202882}, VT424:{d:4482826241},
+  VT500:{p:pp("analog-sensors",75,"vt500-temperature-sensor"),d:2872705025}, VT510:{p:pp("analog-sensors",46,"vt510-humidity-sensor"),d:1596456967},
+  VT515:{p:pp("analog-sensors",45,"vt515-outdoor-temperature-sensor"),d:2671542274}, VT525:{d:2671542274},
+  VT520:{p:pp("analog-sensors",47,"vt520-ac-voltage-monitor"),d:698580995}, VT520DIN:{p:pp("analog-sensors",34,"vt520din-ac-voltage-monitor"),d:697597960},
+  VT530:{p:pp(null,48),d:1711833089}, VT540:{p:pp("analog-sensors",49,"vt540-vibration-sensor"),d:581861378},
+  VT550:{p:pp("analog-sensors",50,"vt550-Anemometer"),d:335708171}, VT560:{p:pp("analog-sensors",51,"vt560-smoke-detector"),d:45252616},
+  VT572:{p:pp("analog-sensors",53,"vt572-radar-motion-sensor"),d:3337945089}, VT580:{p:pp("analog-sensors",82,"vt580-dust-particles-sensor"),d:3315859457},
+  VT591:{p:pp("analog-sensors",54,"vt591-water-leak-sensor"),d:232194051}, VT593:{p:pp("analog-sensors",55,"vt593-spot-leak-sensor"),d:2837708801},
+  VT408:{p:pp("can-sensors",36,"vt408-sensor-extension-unit"),d:2882535425}, VT440:{p:pp("extensions",37,"vt440-dry-contacts-unit"),d:35127335}, VT408D:{p:pp("can-sensors",79,"vt408d-sensor-extension-unit-853710910")},
+  VT450:{p:pp("can-sensors",28,"vt450-pressure-humidity-temperature-sensor")}, VT460:{p:pp("can-sensors",38,"vt460-smoke-humidity-temperature-sensor")},
+  VT490:{p:pp("can-sensors",27,"vt490-humidity-temperature-sensor")},
+  "CAN-12V-1A":{p:pp("can-sensors",35,"can-12-can-power-supply"),d:1904279553},
+  VT7670:{p:pp("extensions",89,"vt7670-4g-modem")}, LR800:{p:pp(null,96),d:4213997570},
+  LR490:{p:pp(null,93)}, LR530:{p:pp(null,95)}, LR560:{p:pp(null,94)}, LR590:{p:pp(null,92)}, LR690:{p:pp(null,122)}, VT336t:{d:2903441424}, VT6604:{p:pp(null,104)}, VT485m:{p:pp("extensions",42,"vt485m-modbus-rtu-extension")},
+  VT485r:{p:SHOP+"extensions/43-vt485r-osdp-reader-board.html"}, DRP03:{p:pp("mounting-brackets",78,"drp-03-din-rail-holder")}, VT123:{p:pp("mounting-brackets",64,"vt123-wall-mounting-bracket")},
+  VT122t:{p:pp("mounting-brackets",63,"vt122t-19-panel-for-vt335")}, VT122i:{p:pp("mounting-brackets",98,"vt122i-19-panel-for-vt335t")},
+  "VT-ACCU":{p:pp("extensions",77,"vt-accu-rechargeable-backup-battery")},
+  VT103:{p:pp(null,61)}, VT105:{p:pp(null,62)}, VT109:{p:pp(null,103)}, USBFHD:{p:pp(null,56)}, KMS30:{p:pp(null,60)}, VT32:{p:pp("extensions",73,"vt32-dry-contacts-extension-for-vt440")},
+};
+const OPT2PROD={"485m":"VT485m","485r":"VT485r",ACCU:"VT-ACCU",CAM:"USBFHD"};
+function prodId(path){if(path.startsWith("w:")){const d=S.lw[+path.slice(2)];return LINKS[d.t]?d.t:null}if(path==="ANT")return "VT6604";if(path==="MOUNT")return S.mount||null;if(path.startsWith("i:")){const v=dryGet(path).v;return LINKS[v]?v:null}const v=path.startsWith("c:")?getA(path):S.p[path];if(!v)return null;
+  const b=base(v);if(LINKS[b])return b;return OPT2PROD[b]||(LINKS[v]?v:null)}
+const ICON_DOC=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>`;
+const ICON_SHOP=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11h10.2L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="16.5" cy="19.5" r="1.4"/></svg>`;
+function linkBtns(id){const L=(id&&LINKS[id])||{};
+  const d=L.d?`<a class="lk" href="${DOCS}${L.d}" target="_blank" rel="noopener noreferrer" title="Datasheet: ${id} (opens in a new window)" aria-label="Datasheet for ${id}">${ICON_DOC}</a>`:`<span class="lk" title="No datasheet for this item">${ICON_DOC}</span>`;
+  const p=L.p?`<a class="lk" href="${L.p}" target="_blank" rel="noopener noreferrer" title="Product page: ${id} (opens in a new window)" aria-label="Product page for ${id}">${ICON_SHOP}</a>`:`<span class="lk" title="No product page for this item">${ICON_SHOP}</span>`;
+  return `<span class="lks">${d}${p}</span>`}
+function connPaths(){
+  const order=["A1","A2","A3","A4","A5","A6","A7","A8","MODEM","ANT","USB",...Array.from({length:UNIT.dry},(_,i)=>"D"+(i+1)),"R1","R2","E1","E2",...Array.from({length:UNIT.iso||0},(_,i)=>"O"+(i+1)),"EXT","SD","BAT","DC12","LBAT"];
+  const paths=order.filter(k=>k==="ANT"?(S.p.MODEM&&S.ant):S.p[k]&&!(k==="E2"&&S.p.E2==="VT109"));if(mountOf())paths.unshift("MOUNT");
+  S.can.forEach((d,ci)=>{if(d.ports)d.ports.forEach((v,pi)=>{if(v)paths.push(`c:${ci}:${pi}`)});if(d.t==="VT440")d.inp.forEach((v,k)=>{if(v)paths.push(`i:${ci}:${k}`)})});if(S.p.EXT==="485m")S.mb.forEach((_,i)=>paths.push("m:"+i));if(UNIT.lora)S.lw.forEach((_,i)=>paths.push("w:"+i));return paths}
+function renderConn(){
+  const paths=connPaths();
+  const done=paths.filter(p=>getD(p)).length;
+  document.getElementById("connCount").textContent=`${done} of ${paths.length} described`;
+  document.getElementById("conn").innerHTML=`<tr><th>Connected to</th><th>Device</th><th style="width:45%">Description</th></tr>`+
+    (paths.length?paths.map(p=>`<tr><td>${esc(where(p))}</td><td><div class="dev"><span>${esc(devName(p))}</span>${linkBtns(prodId(p))}</div></td><td><input class="dIn" type="text" maxlength="80" data-p="${p}" value="${esc(getD(p))}" placeholder="What does it monitor, or where is it mounted?" aria-label="Description for ${esc(where(p))}"></td></tr>`).join("")
+     :`<tr><td colspan="3" style="color:var(--muted)">Nothing connected yet. Press + at a port to add a device.</td></tr>`);
+}
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="descIn"||(t.classList&&t.classList.contains("dIn"))){setD(t.dataset.p,t.value);render()}});
+document.addEventListener("keydown",e=>{const t=e.target;if((t.id==="descIn"||(t.classList&&t.classList.contains("dIn")))&&e.key==="Enter"){t.blur();if(t.id==="descIn")closeMenu()}});
+function openChain(btn,path){chainMenu(path);menu.hidden=false;const r=btn.getBoundingClientRect(),mw=menu.offsetWidth,mh=menu.offsetHeight;
+  let x=Math.min(innerWidth-mw-8,Math.max(8,r.left)),y=r.bottom+6;if(y+mh>innerHeight-8)y=Math.max(8,r.top-mh-6);menu.style.left=x+"px";menu.style.top=y+"px"}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMenu();
+  const t=e.target.tagName;if(t==="INPUT"||t==="SELECT"||t==="TEXTAREA")return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault();e.shiftKey?redo():undo()}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault();redo()}});
+let PORT=Object.fromEntries([...FRONT.ports,...BACK.ports].map(p=>[p.id,p]));
+const TITLES={lbat:"Backup battery",p12:"12 V DC power",p48:"24–48 V DC power",iso:"Signal to equipment",analog:"Analog sensor",dry:"Dry contact",relay:"Relay load",out12:"12 V output",usb:"USB device",ext:"Extension slot",can:"CAN device"};
+const allowedOpts=k=>(BASE.opts&&BASE.opts[k])?OPT[k].filter(o=>BASE.opts[k].includes(o.id)):OPT[k];
+const fitS=list=>{const f=free();return list.filter(o=>!o.s||o.s<=f)};
+
+document.addEventListener("click",e=>{
+  const o=e.target.closest("#menu button[data-o]"); if(o){const cb=pick;closeMenu();cb&&cb(o.dataset.o);render();return}
+  if(!e.target.closest("#menu")) closeMenu();
+  if(e.target.closest("#pctl")||e.target.closest("#order")||e.target.closest("#export")) return;
+  const b=e.target.closest("button[data-a]"); if(!b||b.disabled) return;
+  const a=b.dataset.a,p=b.dataset.p;
+  if(a==="add"){const k=PORT[p].kind;let list=k==="analog"?fitS(OPT.analog):allowedOpts(k);
+    if(k==="out12"){const other=p==="E1"?"E2":"E1";if(S.p[other]||free()<2)list=list.filter(o=>o.id!=="VT109")}
+    openMenu(b,TITLES[k]||k,list,v=>{if(k==="dry"&&v==="CUS")setTimeout(()=>openDry(p),0);if(["iso","relay","out12"].includes(k)&&v==="CUS")setTimeout(()=>openOut(p),0);S.p[p]=v==="VT591"?"VT591@3":v;if(v==="VT109"){S.p.E1="VT109";S.p.E2="VT109"}});return}
+  if(a==="rm"&&S.cust)delete S.cust[p];
+  if(a==="rm"){if(S.p[p]==="VT109"){delete S.p.E1;delete S.p.E2;setD("E1","");setD("E2","")}else delete S.p[p]; setD(p,""); if(p==="EXT"){S.readers=0} if(p==="USB")S.hub={cam:true,flash:true}; if(p==="MODEM"){S.v.SMS=0;S.v.DIAL=0;S.ant=false;setD("ANT","")}}
+  if(a==="ant+")S.ant=true;
+  if(a==="ant-"){S.ant=false;setD("ANT","")}
+  if(a==="v+"){const it=[...VIRT.net,...VIRT.modem].find(x=>x.id===p);if(!(it.max&&S.v[p]>=it.max))S.v[p]++}
+  if(a==="v-")S.v[p]=Math.max(0,S.v[p]-1);
+  if(a==="vrAdd"){const [id,k]=p.split(":");const e=S.vd[id][+k],m=VIRT.modem.concat(VIRT.net).find(i=>i.id===id).multi;if(e.r.length<m){e.r.push("");render();const n=document.querySelectorAll(`.vnp input[data-v="${id}"][data-k="${k}"][data-f="r"]`);if(n.length)n[n.length-1].focus();return}}
+  if(a==="vrRm"){const [id,k,j]=p.split(":");const e=S.vd[id][+k];if(e.r.length>1)e.r.splice(+j,1)}
+  if(a==="vRm"){const [id,k]=p.split(":");S.vd[id].splice(+k,1);S.v[id]=Math.max(0,S.v[id]-1)}
+  if(a.startsWith("accV_")){const kk=a.slice(5);vOpen[kk]=!vOpen[kk];render();return}
+  if(a==="hub+")S.hub[p]=true;
+  if(a==="hub-")S.hub[p]=false;
+  if(a==="rd+")S.readers=Math.min(UNIT.readersMax,S.readers+1);
+  if(a==="rd-")S.readers=Math.max(0,S.readers-1);
+  if(a==="canAdd"){const bus=+(b.dataset.b||0);openMenu(b,"CAN device",fitS(OPT.can),v=>{S.can.push(Object.assign(is408(v)?{t:v,ports:Array(8).fill(null)}:v==="VT440"?{t:v,n:0,inp:Array(64).fill(null),cust:[],idesc:[]}:{t:v},{bus}));sortBuses()});return}
+  if(a==="canPop"){const L=busIdx(+(b.dataset.b||0));if(L.length)S.can.splice(L[L.length-1],1)}
+  if(a==="canRm")S.can.splice(+p,1);
+  if(a==="addc"){const [ci,pi]=p.split(":").map(Number);openMenu(b,"Analog sensor",fitS(OPT.analog),v=>{S.can[ci].ports[pi]=v==="VT591"?"VT591@3":v});return}
+  if(a==="chain"){openChain(b,p);return}
+  if(a==="wlc"){openWlc(b,p);return}
+  if(a==="wl+"||a==="wl-"||a==="wlset"){const v=getA(p);let L=a==="wlset"?+b.dataset.l:wlcLen(v)+(a==="wl+"?1:-1);L=Math.max(3,Math.min(WLC_MAX,L));setA(p,"VT591@"+L);render();wlcMenu(p);return}
+  if(a==="ch+"||a==="ch-"){const v=getA(p),n=Math.max(1,Math.min(CHAIN_MAX,qty(v)+(a==="ch+"?1:-1)));setA(p,n>1?base(v)+"*"+n:base(v));render();chainMenu(p);return}
+  if(a==="rmc"){const [ci,pi]=p.split(":").map(Number);S.can[ci].ports[pi]=null;setD(p,"")}
+  if(a==="info"){openInfo(b,p);return}
+  if(a==="pwrMenu"){openPwr(b,p);return}
+  if(a==="setPwr"){setModel(p);return}
+  if(a==="i440"){const d=S.can[+p],k=d.inp.findIndex((v,i)=>!v&&i<(d.b32?64:32));if(k>=0)d.inp[k]="DC"}
+  if(a==="b32+")S.can[+p].b32=true;
+  if(a==="b32-"){const d=S.can[+p];d.b32=false;for(let k=32;k<64;k++){d.inp[k]=null;d.cust[k]="";d.idesc[k]=""}}
+  if(a==="d440"){const d=S.can[+p];let k=-1;d.inp.forEach((v,i)=>{if(v)k=i});if(k>=0){d.inp[k]=null;d.cust[k]="";d.idesc[k]=""}}
+  if(a==="dryOpen"){openDry(p);return}
+  if(a==="dryEdit"){openDry(p);return}
+  if(a==="outEdit"){openOut(p);return}
+  if(a==="mbOpen"){openMb();return}
+  if(a==="lwOpen"){openLw();return}
+  if(a==="accLw"){lwOpen=!lwOpen;render();return}
+  if(a==="lw+"){const x=LWTI[p];if(free()>=x.s)S.lw.push({t:p,name:"",desc:""});else{alert(`The ${UNIT.maxSensors}-sensor limit is reached.`);return}}
+  if(a==="lw-"){let k=-1;S.lw.forEach((d,i)=>{if(d.t===p)k=i});if(k>=0)S.lw.splice(k,1)}
+  if(a==="lwRm")S.lw.splice(+p,1);
+  if(a==="accMb"){mbOpen=!mbOpen;render();return}
+  if(a==="fitMb"){S.p.EXT="485m";S.readers=0}
+  if(a==="mbAdd"){const t=S.mb.length?S.mb[S.mb.length-1].type:"EM3",need=MBTI[t].params.length;const used=new Set(S.mb.map(d=>d.addr));let ad=1;while(used.has(ad))ad++;
+    if(free()<need){alert(`Not enough room: the ${UNIT.maxSensors}-sensor limit would be passed.`);return}S.mb.push(mbNew(t,ad,""))}
+  if(a==="mbRm")S.mb.splice(+p,1);
+  if(a==="mpAdd"){const d=S.mb[+p];if(d&&free()>=1)d.params.push(P("",""))}
+  if(a==="mpRm"){const [i,j]=p.split(":").map(Number);S.mb[i].params.splice(j,1)}
+  if(a.startsWith("acc_")){const kd=a.slice(4);outOpen2[kd]=!outOpen2[kd];if(!outOpen2[kd])outHot=null;render();return}
+  if(a==="dryClose"||a==="accDry"&&dryOpen){dryOpen=false;dryHot=null;render();return}
+  if(a==="accDry"){openDry(null);return}
+  render();
+});
+document.addEventListener("change",e=>{if(e.target.id==="preset")switchTo(e.target.value)});
+/* Model menu: picks the power version; the power inputs on the back panel follow it */
+const POWER_SET={G:["AC_M"],GG:["AC_M","AC_R"],DC:["DC_M"],DCDC:["DC_M","DC_R"],GDC:["AC_M","DC_R"]};   // VT825GDC: main AC inlet + DC feed on the reserve DC terminal
+function setModel(k){const PS=BASE.powerSet||POWER_SET;if(!PS[k])return;PWR.forEach(id=>{if(!PS[k].includes(id)){delete S.p[id];setD(id,"")}});
+  PS[k].forEach(id=>{S.p[id]=id[0]==="A"?"AC":"DC"});closeMenu();render()}
+document.addEventListener("change",e=>{if(e.target.id==="modelSel")setBase(e.target.value)});
+/* Changing the base controller keeps what fits the new unit (same port names, CAN bus, slots) and drops the rest */
+function setBase(id){if(!CTRL[id]||id===S.base)return;const C=CTRL[id],ids=new Set([...C.front.ports,...C.back.ports].map(p=>p.id));
+  Object.keys(S.p).forEach(k=>{if(!ids.has(k)){delete S.p[k];setD(k,"");if(S.cust)delete S.cust[k]}});
+  Object.assign(S.p,C.power);if(!(C.mounts||[]).some(m=>m.id===S.mount)){delete S.mount;setD("MOUNT","")}S.base=id;applyBase(id);
+  Object.entries(BASE.opts||{}).forEach(([kind,ok])=>[...FRONT.ports,...BACK.ports].filter(p=>p.kind===kind).forEach(p=>{const v=S.p[p.id];if(v&&!ok.includes(v)){if(kind==="modem")S.p[p.id]=ok[0];else{delete S.p[p.id];setD(p.id,"");if(p.id==="EXT"){S.readers=0}}}}));
+  if(!S.p.MODEM){S.v.SMS=0;S.v.DIAL=0;S.ant=false}
+  if(BASE.powerMenu){const v=variant(),PS=BASE.powerSet||POWER_SET;PWR.forEach(k=>{if(!PS[v].includes(k)){delete S.p[k];setD(k,"")}});PS[v].forEach(k=>{S.p[k]=k[0]==="A"?"AC":"DC"})}   // same power version, this unit's terminals
+  if(CANP.length<2)S.can.forEach(d=>d.bus=0);CANP.forEach(c=>{const L=busIdx(c.bus);if(L.length>UNIT.canMax)L.slice(UNIT.canMax).reverse().forEach(i=>S.can.splice(i,1))});S.mb=S.mb.slice(0,UNIT.modbusMax);S.readers=Math.min(S.readers,UNIT.readersMax);
+  closeMenu();render()}
+/* Power version menu: opens from the AC / DC inputs on the back panel */
+function openPwr(btn,path){const cur=variant();
+  menu.innerHTML=`<h3>Power version</h3><p style="margin:0 8px 6px;font-size:.85rem;color:var(--muted)">Choose how the ${BASE===CTRL.VT855?"VT855":"VT825"} is powered. The inputs on the back panel follow your choice.</p>`+
+    Object.entries(MODELS).map(([k,m])=>`<button type="button" data-a="setPwr" data-p="${k}"${k===cur?' aria-current="true" style="background:var(--chip);font-weight:700"':""}><span>${k===cur?"✓ ":""}${m.name}${m.pending?" *":""}</span><small>${m.power}</small></button>`).join("")+
+    (Object.values(MODELS).some(m=>m.pending)?`<p style="margin:4px 8px;font-size:.78rem;color:var(--muted)">* back panel render pending</p>`:"")+descField(path);
+  placeMenu(btn)}
+document.addEventListener("change",e=>{const t=e.target;if(t.classList&&t.classList.contains("lbl")){const d=S.can[+t.dataset.ci];if(d){d.label=t.value.trim();render()}}});
+document.addEventListener("keydown",e=>{const t=e.target;if(t.classList&&t.classList.contains("lbl")){if(e.key==="Enter")t.blur();if(e.key==="Escape"){t.value=S.can[+t.dataset.ci]?.label||"";t.blur()}}});
+document.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.a==="canMove"){const d=S.can[+t.dataset.p],b=busOf(d),arr=S.can.filter(x=>busOf(x)===b);arr.splice(arr.indexOf(d),1);arr.splice(+t.value,0,d);
+  S.can=b===0?arr.concat(S.can.filter(x=>busOf(x)===1)):S.can.filter(x=>busOf(x)===0).concat(arr);render()}});
+document.addEventListener("keydown",e=>{if(e.target.id==="pname"){if(e.key==="Enter")document.querySelector('[data-a="pRenameOk"]').click();if(e.key==="Escape"){pmode="";renderProj()}}});
+document.addEventListener("click",e=>{const b=e.target.closest("#pctl button[data-a]");if(!b||b.disabled)return;const a=b.dataset.a;
+  if(a==="pNew")addProject(emptyState(),"New project",`Empty project: ${CTRL[S.base].models?CTRL[S.base].models.G.name:"VT825G"} with main power only. Add sensors with + at any port.`);
+  if(a==="pDup")addProject(snapshot(),curP().name+" copy",curP().note);
+  if(a==="pRename"){pmode="rename";renderProj()}
+  if(a==="pDelete"&&PJ.list.length>1){pmode="delete";renderProj()}
+  if(a==="pCancel"){pmode="";renderProj()}
+  if(a==="pOut"){if(outOpen){outOpen=false;outHot=null;render()}else openOut(null)}
+  if(a==="pDry"){if(dryOpen){dryOpen=false;dryHot=null;render()}else openDry(null)}
+  if(a==="pOrder"){orderOpen=!orderOpen;renderProj();renderOrder();if(orderOpen)document.getElementById("order").scrollIntoView({behavior:"smooth",block:"start"})}
+  if(a==="pExport"){exportOpen=!exportOpen;exportPick=PJ.cur;renderProj();renderExport();if(exportOpen)document.getElementById("export").scrollIntoView({behavior:"smooth",block:"start"})}
+  if(a==="pUndo")undo();
+  if(a==="pRedo")redo();
+  if(a==="pRenameOk"){const v=document.getElementById("pname").value.trim();if(v){curP().name=v;}pmode="";persist();renderProj()}
+  if(a==="pDeleteOk"){const i=PJ.list.findIndex(p=>p.id===PJ.cur);PJ.list.splice(i,1);PJ.cur=PJ.list[Math.max(0,i-1)].id;pmode="";resetHistory();useState(curP().state);persist();render()}
+});
+/* External links: always a new window, never leave the builder */
+document.addEventListener("click",e=>{const a=e.target.closest("a[href^='http']");if(!a)return;
+  const c=curP();if(c){c.state=snapshot();persist()}
+  let w=null;try{w=window.open(a.href,"_blank")}catch(err){}
+  if(w){try{w.opener=null}catch(err){}e.preventDefault()}          // otherwise the link's own target="_blank" applies
+},true);
+addEventListener("pagehide",()=>{const c=curP();if(c){c.state=snapshot();persist()}});
+document.addEventListener("click",e=>{const b=e.target.closest("#export button[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="exClose"){exportOpen=false;renderProj();renderExport()}
+  if(a==="exGo")doExport(b);
+  if(a==="exPdf")doPdf(b,b.dataset.m||"one");
+  if(a==="exCopy")copyExport(b);
+  if(a==="oq+"){PJ.order[b.dataset.p]=orderQty(b.dataset.p)+1;persist();renderExport();renderOrder()}
+  if(a==="oq-"){PJ.order[b.dataset.p]=Math.max(1,orderQty(b.dataset.p)-1);persist();renderExport();renderOrder()}});
+document.addEventListener("change",e=>{if(e.target.name==="exPick"){exportPick=e.target.value;renderExport()}});
+document.addEventListener("click",e=>{const b=e.target.closest("#order button[data-a]");if(!b||b.disabled)return;const a=b.dataset.a,p=b.dataset.p;
+  if(a==="pOrder"){orderOpen=false;renderProj();renderOrder()}
+  if(a==="oq+"){PJ.order[p]=orderQty(p)+1;persist();renderOrder()}
+  if(a==="oq-"){PJ.order[p]=Math.max(1,orderQty(p)-1);persist();renderOrder()}
+  if(a==="oCopy"){const t=document.getElementById("order")._text||"";const done=()=>{b.textContent="Copied";setTimeout(()=>b.textContent="Copy order list",1500)};
+    try{navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done))}catch(err){fallbackCopy(t,done)}}});
+function fallbackCopy(t,done){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");done()}catch(e){}ta.remove()}
+document.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset&&t.dataset.oc){PJ.order=PJ.order||{};PJ.order[t.dataset.oc]=t.checked?Math.max(1,PJ.order[t.dataset.oc]||1):0;persist();renderOrder();renderExport()}
+  if(t.id==="pdesc"){const c=curP();c.note=t.value.trim();persist()}});
+document.addEventListener("keydown",e=>{if(e.target.id==="pdesc"&&e.key==="Enter")e.target.blur()});
+/* Base controllers */
+const BASES=[{id:"VT825",name:CTRL.VT825.label},{id:"VT855",name:CTRL.VT855.label},{id:"VT335G",name:CTRL.VT335G.label},{id:"VT336t",name:CTRL.VT336t.label},
+  {id:"VT225t",name:CTRL.VT225t.label},{id:"LR800",name:CTRL.LR800.label}];
+document.getElementById("modelSel").innerHTML=BASES.map(b=>`<option value="${b.id}"${b.soon?" disabled":""}>${b.name}${b.soon?" (coming soon)":""}</option>`).join("");
+initProjects();render();
+</script>
+
+</body></html>

@@ -1,0 +1,110 @@
+# Vutlan Configurator
+
+> Guide for AI assistants (Claude, ChatGPT and others) helping someone plan a Vutlan monitoring system with the Vutlan Configurator (https://configurator.vutlan.com, or a downloaded copy: open index.html). Read this file before advising. It lists the controllers, ports, sensors, limits and rules the Configurator enforces.
+
+Vutlan (https://www.vutlan.com) makes environmental and data-center monitoring hardware: monitoring units (controllers), wired sensors, CAN-bus extensions and LoRaWAN wireless sensors. In the Configurator, the user picks a controller, then presses + / − on the real panel pictures to connect sensors and devices. The page enforces the limits below and produces a parts list, a connections list, checks and Excel / PDF exports.
+
+## How to help a user
+
+1. Ask about the site first: rooms and racks, doors, what must be watched (temperature, humidity, leaks, smoke, power, UPS, generator, air conditioning, access), distances, notifications (who gets emails / SMS / Telegram), existing equipment (UPS, meters, BMS), wired or wireless.
+2. Choose a controller (see "Controllers") and explain why.
+3. Assign every sensor to a specific port. Respect all limits and rules below. Count the sensors.
+4. Give the result as clear Configurator steps, e.g. "Model: VT825 → front panel A1: + → VT500 Temperature sensor → description 'Rack 3 front'". The Configurator has no project import yet, so the user clicks the steps in.
+5. Tell the user to run the Configurator's Checks panel and parts list, and to confirm the final order and prices with Vutlan or a Vutlan distributor. Prices are on vutlan.com. Do not invent prices or products.
+6. If something is unclear or not covered here, say so and point to the datasheets (links below) or Vutlan support. Do not guess compatibility.
+
+## Controllers
+
+All controllers have a LAN port, a microSD slot (SDHC / SDXC up to 512 GB), a USB port, a web interface, SNMP and REST API.
+
+### VT825 (19" 1U rack unit)
+- 8 analog sensor ports A1–A8 (RJ12), 16 dry contact inputs, 1 CAN port.
+- Relays R1, R2: NC / NO / COM, 240 V. 12 V outputs E1, E2 (0.25 A each).
+- Extension slot: VT485m (Modbus RTU, up to 32 devices) or VT485r (OSDP v2, up to 4 card readers).
+- LTE modem slot (VT7670), battery slot (VT-ACCU), DC 12 V backup input.
+- Power versions: VT825G (1× 230 VAC), VT825GG (2× 230 VAC), VT825DC (24–48 V DC), VT825DCDC (2× 24–48 V DC), VT825GDC (230 VAC + 24–48 V DC reserve).
+- Limits: 130 physical sensors (3 onboard: PCB temperature, main and reserve voltage), 1000 elements, 24 CAN devices.
+
+### VT855 (19" 1U rack unit)
+- Like the VT825, plus 32 dry contact inputs, 8 isolated dry contact outputs O1–O8 (24 V DC / 15 mA signals to a UPS, generator, circuit breaker, alarm system, etc.) and two separate CAN buses (CAN0 and CAN1, each up to 24 devices).
+- Power versions: VT855G, VT855GG, VT855DC, VT855DCDC, VT855GDC.
+- Limits: 130 physical sensors (3 onboard), 1000 elements.
+
+### VT335G (desktop; optional DIN rail, wall or 19" bracket)
+- 4 analog ports A1–A4, 4 dry contact inputs, 1 CAN port, 12 V outputs E1 / E2 (0.25 A), no NC/NO/COM relays.
+- LTE modem slot (VT7670), extension slot (VT485m or VT485r), DC 12 V backup input, 12 V DC power (adapter included).
+- Mounting options: desktop (default), DRP-03 DIN rail holder, VT123 wall brackets, VT122t 19" 1U bracket for the VT335 and one VT408, VT122i 19" 1U bracket for the VT335 alone.
+- Limits used: 100 physical sensors (1 onboard temperature), 1000 elements, 24 CAN devices.
+
+### VT336t (DIN rail)
+- 4 analog ports, 10 dry contact inputs, 5 isolated dry contact outputs O1–O5, 12 V outputs E1 / E2, 1 CAN port.
+- LTE modem extension (VT7670), Modbus RTU extension (VT485m).
+- Power: 12 V DC input, optional reserve 12 V DC, optional 24–48 V DC input.
+- Limits used: 100 physical sensors (1 onboard), 1000 elements, 24 CAN devices.
+
+### VT225t (desktop, compact)
+- 4 analog ports, 2 dry contact inputs, 2 relays that are 12 V 0.25 A electronic outputs, 1 CAN port (on the back), 12 V DC power.
+- No modem slot, no extension slot (so no Modbus RTU, no SMS / phone calls).
+- Limits: 100 physical sensors, 700 elements, 24 CAN devices.
+
+### LR800 (LoRaWAN gateway server; desktop or wall)
+- Built-in LoRaWAN gateway + network server + application server (EU868, OTAA, class A). Range up to 1 km line of sight, about 3 floors up and down.
+- No analog ports (add a VT408 on CAN for wired analog sensors). 2 dry contact inputs, 1 relay output 12 V 0.25 A, 1 CAN port, LTE modem slot (VT7670).
+- Power: 12 V DC jack, reserve 12 V DC terminal, backup battery input 9–11.1 V. No extension slot.
+- Limits: 100 physical sensors (3 onboard), 700 elements, 24 CAN devices.
+
+## Analog sensors (any analog port A1–A8, also on VT408 / VT408D ports)
+Each counts as 1 sensor.
+- VT410 DC voltage monitor, VT424 DC millivoltmeter
+- VT500 Temperature, VT515 and VT525 Outdoor temperature, VT510 Humidity
+- VT520 and VT520DIN AC voltage monitor
+- VT530 Access (door) sensor: chainable, up to 10 on one port; the chain counts as 1 sensor
+- VT540 Vibration, VT550 Wind velocity, VT572 Radar motion, VT580 Dust particles
+- VT560 Smoke detector: chainable, up to 10 on one port; the chain counts as 1 sensor
+- VT591 Leak sensor with WLC leak cable (WLC3, WLC6, WLC10, WLC15, WLC25 = metres; joined end to end, up to 225 m in total)
+- VT593 Spot leak sensor
+- VT594 is NOT compatible with Vutlan controllers.
+
+## Dry contact inputs
+For door / reed switches, UPS alarm contacts, fire panel, generator status, air conditioner alarm, circuit breaker status, PIR motion detectors, push buttons. Vutlan sells the KMS-30 access sensor (contact magnet). Each used input counts as 1 sensor. Add a VT440 on CAN for 32 more inputs (64 with the VT32 board).
+
+## Outputs
+- Relays R1 / R2 (VT825, VT855): 240 V NC / NO / COM, for power loads, locks, fans, 230 V sirens or lights.
+- 12 V outputs E1 / E2 (0.25 A): VT103 alarm beacon, VT105 strobe light, 12 V lock, small 12 V devices. The VT109 light tower uses E1 and E2 together (not on the LR800, which has one output).
+- Isolated dry contact outputs (VT855 O1–O8, VT336t O1–O5): 24 V DC / 15 mA signals to other equipment.
+- Each used output counts as 1 sensor.
+
+## CAN bus extensions
+Up to 24 CAN devices per bus, max line length 225 m, connected in a chain. Devices 1–12 are powered by the controller; from device 13 a CAN-12V-1A power module is needed after device 12 (one per bus; it does not count as a device).
+- VT408 analog extension (+8 analog ports), VT408D (same, DIN-rail case).
+- VT440 dry contacts unit (+32 inputs, 64 with the VT32 board).
+- VT450 pressure + humidity + temperature (3 sensors), VT460 smoke + temperature / humidity (3 sensors), VT490 temperature + humidity (2 sensors).
+- VT430 is discontinued.
+
+## Modbus RTU (VT485m in the extension slot; VT825, VT855, VT335G, VT336t)
+Up to 32 devices (energy meters, UPS, air conditioners, generator controllers, PLCs, transmitters) on RS-485, each with a slave address 1–247. In the Configurator, every parameter read or written (e.g. voltage L1, active power, UPS battery charge) counts as one sensor.
+
+## LoRaWAN wireless sensors (LR800 only)
+They connect by radio only, never to a port. Vutlan sensors: LR490 humidity + temperature (2 values), LR530 access sensor (1), LR560 smoke detector (1), LR590 water level sensor (1), LR690 outdoor dual sensor (2). Third-party LoRaWAN sensors (EU868, OTAA) can be added too. Every value counts as one sensor. Each sensor is added in the LR800 web interface by scanning its QR code.
+
+## Other options
+- LTE modem VT7670 (the VT740 is discontinued): Ethernet backup over LTE, SMS notifications and phone calls. Optional VT6604 4G antenna (3 m cable).
+- USB: USBFHD Dome Camera, USB flash drive for logs, or a USB hub for both.
+- VT485r: OSDP v2 card readers (up to 4; readers 3–4 need external power).
+
+## Elements (software functions; no hardware)
+Sensors + virtual elements must stay within the element limit (1000, or 700 on VT225t and LR800).
+- Network: Email notification (up to 20 recipients each), Telegram, SNMP Trap, SNMP GET, HTTP request, Web SMS, SMS Gate, API, PING, Modbus TCP read / write, IP camera (view only, max 4).
+- With the LTE modem: SMS notification (up to 20 recipients each), dial task (phone call).
+
+## Limits to keep in mind
+- Physical sensors: VT825 / VT855 130; others 100. Chained VT530 / VT560 count as 1; multi-value devices count each value.
+- CAN: 24 devices per bus; CAN-12V-1A after device 12; line max 225 m.
+- Some limits for VT335G, VT336t and VT225t, and the sensor counts of VT450 / VT460 / LR690, are still being confirmed by Vutlan. Mention this when the plan is close to a limit.
+
+## Links
+- Vutlan website and shop: https://www.vutlan.com
+- Documentation (datasheets, manuals): https://vutlan.atlassian.net/wiki/spaces/DEN/overview
+- Installation and configuration manual: https://vutlan.atlassian.net/wiki/spaces/DEN/pages/1016202/Installation+and+Quick+Configuration+Manual
+- LR800 datasheet: https://vutlan.atlassian.net/wiki/spaces/DEN/pages/4213997570/LR800+LoRa+gateway+server
+- REST API: https://vutlan.atlassian.net/wiki/spaces/API/overview
