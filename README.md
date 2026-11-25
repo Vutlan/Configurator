@@ -9,6 +9,9 @@ Controllers: VT825, VT855 (all power versions), VT335G, VT336t, VT225t, LR800 (L
 ## Planning with an AI assistant
 Give your AI assistant (Claude, ChatGPT, …) the file [`llms.txt`](llms.txt) first: https://configurator.vutlan.com/llms.txt. It lists every controller, port, sensor, limit and rule the Configurator uses, and how to lay out a project.
 
+## Feedback and problems
+Found a problem, or have an idea? Press **💬 Feedback** in the Configurator, or open an issue directly: https://github.com/Vutlan/Configurator/issues (a free GitHub account is needed to post). Please check the existing reports first.
+
 ## Your data
 Projects are saved only in your own browser (localStorage). Nothing is sent to Vutlan or anyone else. Use **Export** to keep a copy as Excel or PDF.
 
