@@ -70,7 +70,7 @@ For door / reed switches, UPS alarm contacts, fire panel, generator status, air 
 
 ## Outputs
 - Relays R1 / R2 (VT825, VT855): 240 V NC / NO / COM, for power loads, locks, fans, 230 V sirens or lights.
-- 12 V outputs E1 / E2 (0.25 A): VT103 alarm beacon, VT105 strobe light, 12 V lock, small 12 V devices. The VT109 light tower uses E1 and E2 together (not on the LR800, which has one output).
+- 12 V outputs E1 / E2 (0.25 A): VT103 alarm beacon, VT105 strobe light, 12 V lock, small 12 V devices, or the Vutlan VT11 Dry Contact Output, which turns the 12 V output into a 5 A relay output for magnetic locks, bolt locks, solenoid electromagnets, sirens, light sources, heaters or air conditioners (the switched device may need an external power supply). The VT109 light tower uses E1 and E2 together (not on the LR800, which has one output).
 - Isolated dry contact outputs (VT855 O1–O8, VT336t O1–O5): 24 V DC / 15 mA signals to other equipment. Vutlan's VT12 Relay module connects here: one VT12 takes two outputs (channels A and B), each channel gives an open 5 A relay output or a powered 12 V 0.5 A output, so one VT12 drives two devices: VT103 alarm beacon, VT105 strobe light, or third-party magnetic locks, bolt locks, solenoid electromagnets, sirens, light sources, heaters or air conditioners. It needs its own 12 V power supply.
 - Each used output counts as 1 sensor.
 

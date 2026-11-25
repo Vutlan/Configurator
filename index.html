@@ -292,6 +292,8 @@ td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-num
 .menu{position:fixed;z-index:50;max-width:320px;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.22);padding:6px;min-width:240px}
 .menu .mg{margin:8px 6px 2px;padding-top:6px;border-top:1px solid var(--line);font:700 .68rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
 .menu h3+.mg{border-top:0;padding-top:0;margin-top:2px}
+.fbk{margin-left:6px;padding:4px 10px;font-size:.85rem}
+.menu a.fb{display:block;padding:7px 8px;border-radius:5px;color:var(--ink);text-decoration:none;font:500 .92rem var(--f-body)}.menu a.fb:hover{background:var(--chip)}.menu a.fb small{display:block;color:var(--muted);font-size:.78rem}
 .menu h3{margin:2px 6px 6px;font:700 .72rem var(--f-body);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
 .menu button{display:flex;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:500 .92rem var(--f-body);padding:7px 8px;border-radius:5px;cursor:pointer}
 .menu button:hover,.menu button:focus-visible{background:var(--chip)}
@@ -312,6 +314,7 @@ td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-num
       <span><i style="background:var(--analog)"></i>Analog</span><span><i style="background:var(--dry)"></i>Dry contacts</span>
       <span><i style="background:var(--can)"></i>CAN bus</span><span><i style="background:var(--relay)"></i>Outputs</span>
       <span><i style="background:var(--mod)"></i>Slots &amp; modules</span><span><i style="background:var(--pwr)"></i>Power</span>
+      <button class="pbtn fbk" type="button" data-a="feedback" title="Report a problem, suggest a feature or leave a comment">💬 Feedback</button>
     </div>
   </header>
   <div class="proj" id="proj">
@@ -1333,6 +1336,20 @@ document.addEventListener("change",e=>{const t=e.target,k=t.dataset&&t.dataset.k
   if(t.classList.contains("v12sel")){S[st]=S[st]||{};if(t.value)S[st][k]={id:t.value,c:(S[st][k]||{}).c||""};else{delete S[st][k];setD(st+":"+k,"")}render();if(t.value==="CUS"){const c=document.querySelector(`.v12cus[data-k="${k}"][data-s="${st}"]`);if(c)c.focus()}}
   else if(t.classList.contains("v12cus")){S[st]=S[st]||{};if(S[st][k]){S[st][k].c=t.value.trim();render()}}});
 
+/* ===== Feedback: GitHub issues (public; needs a free GitHub account). Only the controller model and browser are prefilled, never project data. ===== */
+const APP_VER="2026-11-25", ISSUES="https://github.com/Vutlan/Configurator/issues";
+function issueUrl(kind){const T={bug:["Problem: ","bug","**What happened?**\n\n\n**What did you expect?**\n\n\n**Steps to reproduce**\n1. \n2. \n"],
+  enhancement:["Feature request: ","enhancement","**What would you like the Configurator to do?**\n\n\n**Why would it help?**\n\n"],
+  question:["Comment: ","question","**Your comment, question or advice**\n\n"]}[kind];
+  const body=T[2]+`\n---\nController: ${model()} · Configurator ${APP_VER} · ${navigator.userAgent}`;
+  return `${ISSUES}/new?labels=${encodeURIComponent(T[1])}&title=${encodeURIComponent(T[0])}&body=${encodeURIComponent(body)}`}
+function openFeedback(btn){menu.innerHTML=`<h3>Feedback</h3>
+  <a class="fb" href="${issueUrl("bug")}" target="_blank" rel="noopener noreferrer">🐞 Report a problem<small>Something wrong, missing or confusing</small></a>
+  <a class="fb" href="${issueUrl("enhancement")}" target="_blank" rel="noopener noreferrer">💡 Suggest a feature<small>A product, option or function you'd like to see</small></a>
+  <a class="fb" href="${issueUrl("question")}" target="_blank" rel="noopener noreferrer">💬 Comment or advice<small>Anything else about the Configurator</small></a>
+  <a class="fb" href="${ISSUES}" target="_blank" rel="noopener noreferrer">📋 See all reports<small>Check whether it has already been reported</small></a>
+  <p style="margin:6px 8px 2px;font-size:.78rem;color:var(--muted);max-width:290px">Opens GitHub in a new window (a free GitHub account is needed to post). Only the controller model and your browser are filled in — your projects are not sent.</p>`;placeMenu(btn)}
+
 /* ===== Summary ===== */
 function meter(k,v,cap){const p=Math.min(100,v/cap*100),c=p>=100?"e":p>=80?"w":"";return `<div class="m"><div class="k">${k}</div><div class="v">${v} / ${cap}</div><div class="bar"><i class="${c}" style="width:${p}%"></i></div></div>`}
 /* Parts list of the open project: [name, qty, unit MSRP|null] */
@@ -1566,6 +1583,7 @@ document.addEventListener("click",e=>{
   if(a==="dryOpen"){openDry(p);return}
   if(a==="dryEdit"){openDry(p);return}
   if(a==="outEdit"){openOut(p);return}
+  if(a==="feedback"){openFeedback(b);return}
   if(a==="mbOpen"){openMb();return}
   if(a==="lwOpen"){openLw();return}
   if(a==="accLw"){lwOpen=!lwOpen;render();return}
